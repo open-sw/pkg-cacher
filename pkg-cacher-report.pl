@@ -1,7 +1,7 @@
 #!/usr/bin/perl -w
 
-# apt-cacher-report.pl
-# Script to generate usage reports for the Apt-cacher package caching system.
+# pkg-cacher-report.pl
+# Script to generate usage reports for the Pkg-cacher package caching system.
 #
 # Copyright (C) 2002,2004 Jonathan Oxer <jon@debian.org>
 # Distributed under the terms of the GNU Public Licence (GPL).
@@ -10,12 +10,12 @@
 #############################################################################
 ### configuration ###########################################################
 # Include the library for the config file parser
-require '/usr/share/apt-cacher/apt-cacher-lib.pl';
+require '/usr/share/pkg-cacher/pkg-cacher-lib.pl';
 use POSIX qw(strftime);
 
 
 # Read in the config file and set the necessary variables
-my $configfile = '/etc/apt-cacher/apt-cacher.conf';
+my $configfile = '/etc/pkg-cacher/pkg-cacher.conf';
 
 # Needs to be global for &setup_ownership
 our $cfg;
@@ -66,7 +66,7 @@ my $logfile = "$cfg->{logdir}/access.log";
 # Read in the logfiles if they exist, from oldest to newest
 
 # First we look for rolled and compressed logfiles, from
-# /var/log/apt-cacher/access.log.12.gz to access.log.2.gz
+# /var/log/pkg-cacher/access.log.12.gz to access.log.2.gz
 $logcount = 12;
 while ($logcount > 1)
 {
@@ -110,11 +110,12 @@ foreach $logfile_line (@logdata)
 	#$logfile_line =~ s/ /\+/g;
 	@line = split /\|/, $logfile_line;
 	$req_date = $line[0];
-#	$req_ip   = $line[1];
-	$req_result = $line[2];
+#	$req_pid  = $line[1];
+#	$req_ip   = $line[2];
+	$req_result = $line[3];
 	$req_bytes  = 0;
-	$req_bytes  = $line[3] if $line[3] =~ /^[0-9]+$/;
-#	$req_object = $line[4];
+	$req_bytes  = $line[4] if $line[4] =~ /^[0-9]+$/;
+#	$req_object = $line[5];
 
 	$lastrecord = $req_date;
 	if(!$firstrecord) {
@@ -208,7 +209,7 @@ if(!$lastrecord)
 # spit out the report
 $output = "
 <html>
-<title>Apt-cacher traffic report</title><style type=\"text/css\"><!--
+<title>Pkg-cacher traffic report</title><style type=\"text/css\"><!--
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1 { font-family: arial, helvetica, sans-serif; font-size: 18pt; font-weight: bold;}
@@ -219,13 +220,13 @@ th { font-family: arial, helvetica, sans-serif; font-size: 11pt; font-weight: bo
 </head>
 <body>";
 
-#	print "<html><head><title>Apt-cacher traffic report</title></head>\n";
+#	print "<html><head><title>Pkg-cacher traffic report</title></head>\n";
 #	print "<body bgcolor=\"#ffffff\">\n";
 
 $output .= "<p>
 <table border=0 cellpadding=8 cellspacing=1 bgcolor=\"#000000\" align=\"center\" width=\"600\">
-<tr bgcolor=\"#9999cc\"><td> <h1>Apt-cacher traffic report</h1> </td></tr>
-<tr bgcolor=\"#cccccc\"><td>For more information on apt-cacher visit <a href=\"http://packages.debian.org/apt-cacher\">http://packages.debian.org/apt-cacher</a>.
+<tr bgcolor=\"#9999cc\"><td> <h1>Pkg-cacher traffic report</h1> </td></tr>
+<tr bgcolor=\"#cccccc\"><td>For more information on pkg-cacher visit <a href=\"http://packages.debian.org/pkg-cacher\">http://packages.debian.org/pkg-cacher</a>.
 </td></tr>
 </table>";
 

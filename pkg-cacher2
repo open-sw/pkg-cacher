@@ -2,7 +2,7 @@
 
 =head1 NAME
 
- apt-cacher2 - WWW proxy optimized for use with APT
+ pkg-cacher2 - WWW proxy optimized for use with APT
 
  Copyright (C) 2005 Eduard Bloch <blade@debian.org>
  Copyright (C) 2007 Mark Hindley <mark@hindley.org.uk>
@@ -21,18 +21,18 @@ If you have two or more Debian GNU/Linux machines on a fast local
 network and you wish to upgrade packages from the Internet, you
 don't want to download every package several times.
 
-apt-cacher2 is a tiny HTTP proxy that keeps a cache on disk of Debian
+pkg-cacher2 is a tiny HTTP proxy that keeps a cache on disk of Debian
 binary/source packages and meta files which have been received from Debian
 distribution servers on the Internet. When an apt-get client issues
-a request for a file to apt-cacher2, if the file is already on disk
+a request for a file to pkg-cacher2, if the file is already on disk
 it is served to the client immediately, otherwise it is fetched from the
 Internet and served to the client while a copy is being stored on the disk.
 This means that several Debian machines can be upgraded but each package needs
 to be downloaded only once.
 
-apt-cacher2 is a rewrite of the original apt-cacher.pl CGI script, keeping
+pkg-cacher2 is a rewrite of the original pkg-cacher.pl CGI script, keeping
 compatibility in mind. The cached data can be shared by the both
-implementations, while apt-cacher2 providers better performance and less server
+implementations, while pkg-cacher2 providers better performance and less server
 load.
 
 =head1 INSTALLATION
@@ -40,9 +40,9 @@ load.
 Assuming your cache server is called B<www.myserver.com>
 and your cache directory is called B</home/me/cache>, then:
 
-1. Edit apt-cacher.conf to customize your settings
+1. Edit pkg-cacher.conf to customize your settings
 
-2. Run apt-cacher2
+2. Run pkg-cacher2
 
 =cut
 # ----------------------------------------------------------------------------
@@ -50,7 +50,7 @@ and your cache directory is called B</home/me/cache>, then:
 use strict;
 use warnings;
 no warnings 'uninitialized';
-use lib '/usr/share/apt-cacher/';
+use lib '/usr/share/pkg-cacher/';
 
 ## Just for testing!
 #use File::Basename;
@@ -66,12 +66,14 @@ use HTTP::Date;
 
 use Sys::Hostname;
 
+use File::Path;
+
 # Include the library for the config file parser
-require 'apt-cacher-lib.pl';
+require 'pkg-cacher-lib.pl';
 
 # Set some defaults
-my $version='0.1'; # this will be auto-replaced when the Debian package is being built
-my $configfile_default = '/etc/apt-cacher/apt-cacher.conf';
+my $version='0.1'; # this will be auto-replaced when the package is being built
+my $configfile_default = '/etc/pkg-cacher/pkg-cacher.conf';
 my $configfile = $configfile_default;
 
 my $mode; # cgi|inetd|undef
@@ -86,7 +88,7 @@ my %pathmap;
 
 # Data shared between functions
 
-my $new_filename;
+my $filename;
 my $cached_file;
 my $cached_head;
 my $complete_file;
@@ -184,7 +186,7 @@ EOM
     # not sure what to do if we can't read the config file...
     die "Could not read config file: $@" if $@;
 
-    define_global_lockfile("$cfg->{cache_dir}/private/exlock");
+    define_global_lockfile("$cfg->{cache_dir}/exlock");
 
     # Now set some things from the command line
     $cfg->{pidfile} = $pidfile if $pidfile;
@@ -199,8 +201,8 @@ EOM
 	$cfg->{$k}=$v;
     }
 
-    # checksum
-    require 'apt-cacher-lib-cs.pl' if $cfg->{checksum};
+    my $uid = $cfg->{user}=~/^\d+$/ ? $cfg->{user} : getpwnam($cfg->{group});
+    my $gid = $cfg->{group}=~/^\d+$/ ? $cfg->{group} : getgrnam($cfg->{group});
 
     if($cfg->{path_map}) {
 	for(split(/\s*[,;]\s*/, $cfg->{path_map})) {
@@ -215,7 +217,7 @@ EOM
     # Ensure config is sane and filesystem is present and readable
     &check_install;
     # Die if it still failed
-    die "$0: No $cfg->{cache_dir}/private directory!\n" if (!-d "$cfg->{cache_dir}/private");
+    die "$0: No $cfg->{cache_dir} directory!\n" if (!-d "$cfg->{cache_dir}");
 }
 
 sub term_handler {
@@ -257,7 +259,7 @@ sub handle_connection {
 	$source=*STDIN;
 	$con = *STDOUT;
 	# identify client in the logs.
-	if (exists $ENV{REMOTE_ADDR}){ # CGI/apt-cacher-cleanup mode
+	if (exists $ENV{REMOTE_ADDR}){ # CGI/pkg-cacher-cleanup mode
 	    $client=$ENV{REMOTE_ADDR};
 	}
 	else { # inetd mode
@@ -333,24 +335,21 @@ sub handle_connection {
 	else
 	{
 	    # Bzzzt, client is outside allowed range. Send a 403 and bail.
-	    badaddr:
+	badaddr:
 	    debug_message("Alert: client $client disallowed by access control");
 	    &sendrsp(403, 'Access to cache prohibited');
 	    exit(4);
 	}
     }
 
-    db_init("$cfg->{cache_dir}/sums.db"); # Must be done per process
-
     REQUEST:
     while(!$concloseflag) {
 
-	my $path;
+	my $reqstpath;
 	my $testpath; # temporary, to be set by GET lines, undef on GO
-	my $filename;
 	my $ifmosince;# to be undef by new GET lines
 	my $send_head_only=0; # to be undef by new GET lines
-	my $tolerated_empty_lines=20;
+	my $tolerated_empty_lines=1;
 	my $rangereq;
 	my $hostreq;
 	my $httpver;
@@ -358,7 +357,8 @@ sub handle_connection {
 	my $cache_status;
 
 	# reading input line by line, through the secure input method
-	CLIENTLINE: while(1) {
+    CLIENTLINE:
+	while(1) {
 
 	    debug_message('Processing a new request line');
 
@@ -374,7 +374,7 @@ sub handle_connection {
 	    if(/^$/) {
 		if(defined($testpath)) {
 		    # done reading request
-		    $path=$testpath;
+		    $reqstpath=$testpath;
 		    last CLIENTLINE;
 		}
 		elsif(!$tolerated_empty_lines)   {
@@ -443,13 +443,13 @@ sub handle_connection {
 	$ifmosince=0 if $rangereq;
 
 	# Decode embedded ascii codes in URL
-	$path =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+	$reqstpath =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
 
 	# tolerate CGI specific junk and two slashes in the beginning
-	$path =~ s!^/apt-cacher\??/!/!;
-	$path =~ s!^//!/!;
+	$reqstpath =~ s!^/pkg-cacher\??/!/!;
+	$reqstpath =~ s!^//!/!;
 
-	if ($path =~ m!^http://([^/]+)!) { # Absolute URI
+	if ($reqstpath =~ m!^http://([^/]+)!) { # Absolute URI
 	    # Check host or proxy
 	    debug_message("Checking host $1 in absolute URI");
 	    my $sock = io_socket_inet46(PeerAddr=> $1, # possibly with port
@@ -469,28 +469,27 @@ sub handle_connection {
 		$sock->sockhost =~ $sock->peerhost &&
 		$sock->peerport == $cfg->{daemon_port}) { # Host is this host
 		debug_message('Host in Absolute URI is this server');
-		$path =~ s!^http://[^/]+!!; # Remove prefix and hostname
+		$reqstpath =~ s!^http://[^/]+!!; # Remove prefix and hostname
 	    }
 	    else { # Proxy request
 		debug_message('Host in Absolute URI is not this server');
-		$path =~ s!^http:/!!; # Remove absolute prefix
+		$reqstpath =~ s!^http:/!!; # Remove absolute prefix
 	    }
 	    defined($sock) && $sock->shutdown(2); # Close
 	}
-	debug_message("Resolved request is $path");
+	debug_message("Resolved request is $reqstpath");
 
 	# Now parse the path
-	if ($path =~ /^\/?report/) {
+	if ($reqstpath =~ /^\/?report/) {
 	    usage_report();
 	    exit(0);
 	}
 
-	if ($path !~ m(^/?.+/.+)) {
+	if ($reqstpath !~ m(^/?.+/.+)) {
 	    usage_error($client);
 	}
 
-	REPARSE:
-	my($host,$uri) = ($path =~ m#^/?([^/]+)(/.+)#);
+	my ($host,$uri) = ($reqstpath =~ m#^/?([^/]+)(/.+)#);
 
 	if ( !$host || !$uri ) {
 	    usage_error($client);
@@ -499,7 +498,7 @@ sub handle_connection {
 	$uri =~ s#/{2,}#/#g; # Remove multiple separators
 	($filename) = ($uri =~ /\/?([^\/]+)$/);
 
-	if($cfg->{allowed_locations}) {
+	if ($cfg->{allowed_locations}) {
 	    #         debug_message('Doing location check for '.$cfg->{allowed_locations} );
 	    my $mess;
 	    my $cleanuri=$uri;
@@ -517,39 +516,32 @@ sub handle_connection {
 		}
 		$mess = "Host '$host' is not configured in the allowed_locations directive";
 	    }
-	    badguy:
+	badguy:
 	    debug_message("$mess; access denied");
 	    &sendrsp(403, "Access to cache prohibited, $mess");
 	    exit(4);
 	}
-	location_allowed:
+    location_allowed:
 
 	if ($filename =~ /(?:\.deb|\.rpm|\.dsc|\.tar\.gz|\.diff\.gz|\.udeb|index\.db-.+\.gz\.jigdo|\.template)$/) {
 	    # We must be fetching a .deb or a .rpm or some other recognised
 	    # file, so let's cache it.
 	    # Place the file in the cache with just its basename
-	    $new_filename = $filename;
-	    debug_message("new base file: $new_filename");
+	    debug_message("base file: $filename");
 	}
 	elsif ($filename =~ /2\d\d\d-\d\d-\d\d.*\.gz$/) {
 	    # a patch file. Needs a unique filename but no freshness checks
-	    $new_filename = "$host$uri";
-	    $new_filename =~ s/\//_/g;
-	    debug_message("new pdiff file: $new_filename");
+	    debug_message("pdiff file: $filename");
 	}
 	elsif ($filename =~ /^(?:vmlinuz|initrd\.gz)$/) {
 	    # Installer or Debian-live files
 	    # Need to be long names, but not index
-	    $new_filename = "$host$uri";
-	    $new_filename =~ s/\//_/g;
-	    debug_message("new installer file: $new_filename");
+	    debug_message("installer file: $filename");
 	}
 	elsif (&is_index_file($filename)) {
 	    # It's a Packages.gz or related file: make a long filename so we can
 	    # cache these files without the names colliding
-	    $new_filename = "$host$uri";
-	    $new_filename =~ s/\//_/g;
-	    debug_message("new index file: $new_filename");
+	    debug_message("index file: $filename");
 	} else {
 	    # Maybe someone's trying to use us as a general purpose proxy / relay.
 	    # Let's stomp on that now.
@@ -558,10 +550,26 @@ sub handle_connection {
 	    exit(4);
 	}
 
-	$cached_file = "$cfg->{cache_dir}/packages/$new_filename";
-	$cached_head = "$cfg->{cache_dir}/headers/$new_filename";
-	$complete_file = "$cfg->{cache_dir}/private/$new_filename.complete";
-	$notify_file = "$cfg->{cache_dir}/private/$new_filename.notify";
+	$cached_file = "$cfg->{cache_dir}/packages/$host$uri";
+	$cached_head = "$cfg->{cache_dir}/headers/$host$uri";
+	$complete_file = "$cfg->{cache_dir}/private/$host$uri.complete";
+	$notify_file = "$cfg->{cache_dir}/private/$host$uri.notify";
+
+	foreach my $file ($cached_file, $cached_head, $complete_file) {
+	    my ($filepath) = $file =~ /(.*\/)[^\/]+/;
+
+	    debug_message("Checking for directory $filepath");
+
+	    if (! -d $filepath) {
+		debug_message("Directory doesn't exist, creating $filepath");
+		eval { mkpath($filepath) };
+		if ($@) {
+		    info_message("Unable to create directory $filepath: $@");
+		    &sendrsp(403, "System error: $filename");
+		    exit(4);
+		}
+	    }
+	}
 
 	debug_message("looking for $cached_file");
 
@@ -573,7 +581,7 @@ sub handle_connection {
 		    my $now = time();
 		    my @stat = stat($cached_file);
 		    if (@stat && int(($now - $stat[9])/3600) > $cfg->{expire_hours}) {
-			debug_message("unlinking $new_filename because it is too old");
+			debug_message("unlinking $filename because it is too old");
 			# Set the status to EXPIRED so the log file can show it
 			# was downloaded again
 			$cache_status = 'EXPIRED';
@@ -621,7 +629,7 @@ sub handle_connection {
 			      debug_message("cached file is up to date or more recent, $oldmod <-> $newmod");
 			  }
 			  else {
-			      debug_message("downloading $new_filename because more recent version is available: $oldmod <-> $newmod");
+			      debug_message("downloading $filename because more recent version is available: $oldmod <-> $newmod");
 			      $cache_status = 'EXPIRED';
 			      debug_message($cache_status);
 			  }
@@ -670,7 +678,6 @@ sub handle_connection {
 	      barf("Unable to open $cached_file: $!.");
 	    if (-f $complete_file) {
 		# not much to do if complete
-	        # Possibly checksum cached file before delivery
 		$cache_status = 'HIT';
 		debug_message($cache_status);
 	    }
@@ -697,7 +704,7 @@ sub handle_connection {
 	    if($cfg->{offline_mode})
 	    {
 		&release_global_lock;
-		&sendrsp(503, 'Service not available: apt-cacher offline');
+		&sendrsp(503, 'Service not available: pkg-cacher offline');
 		next REQUEST;
 	    }
 	    # (re) download them
@@ -722,7 +729,6 @@ sub handle_connection {
 	    if ($pid == 0) {
 		# child, the fetcher thread
 		undef @childPids;
-		db_init("$cfg->{cache_dir}/sums.db"); # Must be done per process
 		&fetch_store ($host, $uri, \$pkfd); # releases the global lock
                                                    # after locking the target
                                                    # file
@@ -742,7 +748,7 @@ sub handle_connection {
 	debug_message('Package sent');
 
 	# Write all the stuff to the log file
-	writeaccesslog($cache_status, $new_filename, $client);
+	writeaccesslog($cache_status, $filename, $client);
     }
 }
 
@@ -897,12 +903,6 @@ sub return_file {
 		    rename($cached_file, "$cached_file.corrupted");
 		    exit(5); # Header already sent, can't notify error
 		}
-		# Checksum
-		if(!&is_index_file($cached_file) && !check_sum($new_filename)) {
-		    info_message("ALARM! $cached_file checksum invalid! Removing.");
-		    unlink $cached_file;
-		    exit(5); # Header already sent, can't notify error
-		}
 		last CHUNK;
 	    }
 
@@ -941,7 +941,7 @@ sub usage_error {
     my $hosturl;
     my $modestr;
     if ($mode eq 'cgi') {
-	$hosturl = hostname . '/[cgi-bin/]apt-cacher';
+	$hosturl = hostname . '/[cgi-bin/]pkg-cacher';
 	$modestr = 'CGI mode';
     }
     else {
@@ -957,7 +957,7 @@ sub usage_error {
 	print $con <<EOF;
 
 <html>
-<title>Apt-cacher version $version: $modestr</title>
+<title>Pkg-cacher version $version: $modestr</title>
 <style type="text/css"><!--
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
@@ -972,13 +972,13 @@ th { font-family: arial, helvetica, sans-serif; font-size: 11pt; font-weight: bo
 <table border=0 cellpadding=8 cellspacing=1 bgcolor="#000000" align="center" width="600">
 <tr bgcolor="#9999cc">
 <td>
-<h1>Apt-cacher version $version: $modestr</h1>
+<h1>Pkg-cacher version $version: $modestr</h1>
 </td>
 </tr>
 <tr bgcolor="#cccccc">
 <td>
 Usage: edit your /etc/apt/sources.list so all your HTTP sources are prepended
-with the address of your apt-cacher machine and the port, like this:
+with the address of your pkg-cacher machine and the port, like this:
 <blockquote>deb&nbsp;http://example.debian.org/debian&nbsp;unstable&nbsp;main&nbsp;contrib&nbsp;non-free</blockquote>
 becomes
 <blockquote>deb&nbsp;http://<b>$hosturl/</b>example.debian.org/debian&nbsp;unstable&nbsp;main&nbsp;contrib&nbsp;non-free</blockquote>
@@ -1006,11 +1006,11 @@ EOF
 width="600">
 <tr bgcolor="#cccccc">
 <td>
-<p>Apt-cacher is free software; you can redistribute it and/or modify it under
+<p>Pkg-cacher is free software; you can redistribute it and/or modify it under
 the terms of the GNU General Public License as published by the Free Software
 Foundation; either version 2 of the License, or (at your option) any later
 version.
-<p>Apt-cacher is distributed in the hope that it will be useful, but WITHOUT ANY
+<p>Pkg-cacher is distributed in the hope that it will be useful, but WITHOUT ANY
 WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
 PARTICULAR PURPOSE. See the GNU General Public License for more details.
 <p>A copy of the GNU General Public License is available as
@@ -1031,7 +1031,7 @@ EOF
 # Jon's extra stuff to write the event to a log file.
 sub writeaccesslog {
     my $cache_status = shift;
-    my $new_filename = shift;
+    my $filename = shift;
     my $client = shift;
 
     # The format is 'time|cache status (HIT, MISS or EXPIRED)|client IP address|file size|name of requested file'
@@ -1039,7 +1039,7 @@ sub writeaccesslog {
     my $file_length = -s $cached_file;
 
     flock($aclog_fh, LOCK_EX);
-    print $aclog_fh "$time|$$|$client|$cache_status|$file_length|$new_filename\n";
+    print $aclog_fh "$time|$$|$client|$cache_status|$file_length|$filename\n";
     flock($aclog_fh, LOCK_UN);
 }
 
@@ -1160,7 +1160,7 @@ sub debug_callback {
 	$curl=new WWW::Curl::Easy;
 
 	# General
-	$curl->setopt(CURLOPT_USERAGENT, "apt-cacher/$version ".$curl->version);
+	$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version ".$curl->version);
 	$curl->setopt(CURLOPT_NOPROGRESS, 1);
 	$curl->setopt(CURLOPT_CONNECTTIMEOUT, 60);
 	$curl->setopt(CURLOPT_NOSIGNAL, 1);
@@ -1239,7 +1239,7 @@ sub libcurl {
     if($curl->perform) { # error
 	$response=HTTP::Response->new(502);
 	$response->protocol('HTTP/1.1');
-	$response->message('apt-cacher: libcurl error: '.$curl->errbuf);
+	$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
 	info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
 	write_header(\$response); # Replace with error header
     }
@@ -1267,9 +1267,6 @@ sub fetch_store {
     my $url = "http://$host$uri";
     debug_message("fetcher: try to fetch $url");
 
-    # for checksumming
-    &data_init;
-
     # jump from the global lock to a lock on the target file
     flock($$pkfdref, LOCK_EX) || barf('Unable to lock the target file');
     &release_global_lock;
@@ -1284,33 +1281,35 @@ sub fetch_store {
     if ($response->is_success) {
 	debug_message("stored $url as $cached_file");
 
-	# check missmatch or fetcher failure, could not connect the server
-	if( !&is_index_file($cached_file) && !check_sum($new_filename)) {
-	    &set_global_lock(': file corruption report');
-	    info_message("ALARM! checksum mismatch on $new_filename");
-	    unlink $cached_file, $cached_head;
-	    open(MF, ">$cached_head") || die $!;
-	    print MF 'HTTP/1.1 502 Data corruption';
-	    close(MF);
-	    &kill_readers;
-	    &release_global_lock;
-	}
-
 	# assuming here that the filesystem really closes the file and writes
 	# it out to disk before creating the complete flag file
 
-	debug_message("setting complete flag for $new_filename");
+	my $sha1sum = `sha1sum $cached_file`;
+
+	if (!$sha1sum) {
+	    barf("Unable to calculate SHA-1 sum for $cached_file - error = $?");
+	}
+
+	($sha1sum) = $sha1sum =~ /([0-9A-Za-z]+) +.*/;
+
+	debug_message("sha1sum $cached_file = $sha1sum");
+
+	&set_global_lock(': link to cache');
+	
+	if (-f "$cfg->{cache_dir}/cache/$filename.$sha1sum") {
+	    unlink($cached_file);
+	    link("$cfg->{cache_dir}/cache/$filename.$sha1sum", $cached_file);
+	} else {
+	    link($cached_file, "$cfg->{cache_dir}/cache/$filename.$sha1sum");
+	}
+
+	&release_global_lock;
+
+	debug_message("setting complete flag for $filename");
 	# Now create the file to show the pickup is complete, also store the original URL there
 	open(MF, ">$complete_file") || die $!;
 	print MF $response->request;
 	close(MF);
-
-	# index file? Get checksums
-	if ($cached_file =~ /Packages|Sources|Release$|diff_Index$/) {
-	    debug_message("Reading checksums from $cached_file\n");
-	    # warning, an attacker could poison the checksum cache easily
-	    import_sums($cached_file);
-	}
     }
     elsif(HTTP::Status::is_client_error($response->code)) {
        	debug_message('Upstream server returned error '.$response->code." for ".$response->request.". Deleting $cached_file.");
@@ -1343,7 +1342,7 @@ sub usage_report {
 	print $con <<EOF;
 
 <html>
-<title>Apt-cacher traffic report</title><style type="text/css"><!--
+<title>Pkg-cacher traffic report</title><style type="text/css"><!--
 a { text-decoration: none; }
 a:hover { text-decoration: underline; }
 h1 { font-family: arial, helvetica, sans-serif; font-size: 18pt; font-weight: bold;}
@@ -1354,12 +1353,12 @@ th { font-family: arial, helvetica, sans-serif; font-size: 11pt; font-weight: bo
 </head>
 <body>
 <table border=0 cellpadding=8 cellspacing=1 bgcolor="#000000" align="center" width="600">
-<tr bgcolor="#9999cc"><td> <h1>Apt-cacher traffic report</h1> </td></tr>
+<tr bgcolor="#9999cc"><td> <h1>Pkg-cacher traffic report</h1> </td></tr>
 </td></tr>
 </table>
 
 <p><table border=0 cellpadding=3 cellspacing=1 bgcolor="#000000" align="center" width="600">
-<tr bgcolor="#9999cc"><th bgcolor="#9999cc"> An Apt-cacher usage report has not yet been generated </th></tr>
+<tr bgcolor="#9999cc"><th bgcolor="#9999cc"> An Pkg-cacher usage report has not yet been generated </th></tr>
 <tr bgcolor="#cccccc"><td bgcolor="#ccccff"> Reports are generated every 24 hours. If you want reports to be generated, make sure you set '<b>generate_reports=1</b>' in <b>$configfile</b>.</td></tr>
 </table>
 		</body>
@@ -1567,13 +1566,13 @@ sub get_inetd_port {
 	    };
 	while (<FILE>) {
 	    next if /^(?:#|$)/; # Weed comments and empty lines
-	    if (/^\s*(\S+)\s+.*apt-cacher/) {
+	    if (/^\s*(\S+)\s+.*pkg-cacher/) {
 		$port = $1;
 		last;
 	    }
 	}
 	close (FILE);
-	info_message("Warning: no apt-cacher port found in $inetdconf") if !$port;
+	info_message("Warning: no pkg-cacher port found in $inetdconf") if !$port;
     }
     elsif ( -f '/var/run/xinetd.pid' && -f $xinetdconfdir || -f $xinetdconf ) {
 	my $ident;
@@ -1590,7 +1589,7 @@ sub get_inetd_port {
 		    $ident = $1;
 		    next LINE;
 		}
-		$found += /^\s+server(?:_args)?\s*=.*apt-cacher/;
+		$found += /^\s+server(?:_args)?\s*=.*pkg-cacher/;
 		if (/^\s+port\s*=\s*(\d+)/) {
 		    $ident = $1;
 		}
@@ -1602,7 +1601,7 @@ sub get_inetd_port {
 		last FILE;
 	    }
 	}
-	info_message("Warning: no apt-cacher port found in $xinetdconf") if !$found;
+	info_message("Warning: no pkg-cacher port found in $xinetdconf") if !$found;
     }
     else {
 	info_message('Warning: no running inetd server found');
@@ -1717,7 +1716,7 @@ for my $daemon_addr ($cfg->{daemon_addr} ?
     # State: READY
     # That is the working condition (daemon mode)
 
-    debug_message("Apt-Cacher version $version started with Debug output enabled, accepting connections on " . $daemon->sockhost . ':' . $daemon->sockport);
+    debug_message("Pkg-Cacher version $version started with Debug output enabled, accepting connections on " . $daemon->sockhost . ':' . $daemon->sockport);
 
     while (1) {
 

@@ -1,5 +1,5 @@
 #! /bin/sh
-# prerm script for apt-cacher
+# prerm script for pkg-cacher
 #
 # see: dh_installdeb(1)
 
@@ -19,16 +19,16 @@ set -e
 
 case "$1" in
     remove|deconfigure)
-		echo "Running apt-cacher remove script"
-		/usr/share/apt-cacher/remove.pl
+		echo "Running pkg-cacher remove script"
+		/usr/share/pkg-cacher/remove.pl
 	;;
 	
     upgrade)
-		echo "Running apt-cacher upgrade script"
-		/usr/share/apt-cacher/upgrade.pl
+		echo "Running pkg-cacher upgrade script"
+		/usr/share/pkg-cacher/upgrade.pl
 	# This was added to comply with the doc transition to FHS
-	# if [ -a -L /usr/doc/apt-cacher ]; then
-	#       rm -f /usr/doc/apt-cacher
+	# if [ -a -L /usr/doc/pkg-cacher ]; then
+	#       rm -f /usr/doc/pkg-cacher
 	# fi
 	;;
 

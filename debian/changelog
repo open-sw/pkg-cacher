@@ -1,3 +1,8 @@
+pkg-cacher (1.0.0_ unstable; urgency=low
+
+  * Renamed to pkg-cacher.
+  * Modified to support RedHat.
+
 apt-cacher (1.6.4) unstable; urgency=low
 
   * Add interface option (closes: #483666)

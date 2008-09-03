@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-# apt-cacher-cleanup.pl
-# Script to clean the cache for the Apt-cacher package caching system.
+# pkg-cacher-cleanup.pl
+# Script to clean the cache for the Pkg-cacher package caching system.
 #
 # Copyright (C) 2005, Eduard Bloch <blade@debian.org>
 # Copyright (C) 2002-03, Jonathan Oxer <jon@debian.org>
@@ -14,7 +14,7 @@
 
 use strict;
 use warnings;
-use lib '/usr/share/apt-cacher/';
+use lib '/usr/share/pkg-cacher/';
 
 use Cwd;
 
@@ -27,7 +27,7 @@ use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use Digest::SHA1;
 use HTTP::Date;
 
-my $configfile = '/etc/apt-cacher/apt-cacher.conf';
+my $configfile = '/etc/pkg-cacher/pkg-cacher.conf';
 my $nice_mode=0;
 my $verbose=0;
 my $help;
@@ -64,7 +64,7 @@ if ($sim_mode) {
 #############################################################################
 ### configuration ###########################################################
 # Include the library for the config file parser
-require 'apt-cacher-lib.pl';
+require 'pkg-cacher-lib.pl';
 # Read in the config file and set the necessary variables
 
 # $cfg needs to be global for setup_ownership
@@ -139,7 +139,7 @@ sub get {
 	$path_info=~s/^/\//;
 	$path_info=~s/_/\//g;
     }
-    open($fh, "| REMOTE_ADDR=CLEANUPREFRESH /usr/share/apt-cacher/apt-cacher -i -c $configfile >/dev/null");
+    open($fh, "| REMOTE_ADDR=CLEANUPREFRESH /usr/share/pkg-cacher/pkg-cacher -i -c $configfile >/dev/null");
     printmsg "GET $path_info\n";
     print $fh "GET $path_info\r\nCache-Control: max-age=0\r\nConnection: Close\r\n\r\n";
     close($fh);
@@ -464,7 +464,7 @@ if (@db_mode || $db_recover){
     }
     $verbose = 1; # Just for now
 
-    require 'apt-cacher-lib-cs.pl';
+    require 'pkg-cacher-lib-cs.pl';
 
     if ($db_recover) {
 	printmsg "Running database recovery...";
@@ -547,7 +547,7 @@ if (defined $cfg->{offline_mode} && $cfg->{offline_mode}) {
 
 my $dbref;
 if ($cfg->{checksum}) {
-   require 'apt-cacher-lib-cs.pl';
+   require 'pkg-cacher-lib-cs.pl';
    $dbref = &db_init("$cfg->{cache_dir}/sums.db");
 }
 
@@ -637,7 +637,7 @@ for my $file (@ifiles) {
 
     if(-e $tmpfile && -z $tmpfile && $tmpfile=~/(?:gz|bz2)$/) {
 	# moo, junk, empty file, most likely leftovers from previous versions
-	# of apt-cacher-cleanup where the junk was "protected" from being
+	# of pkg-cacher-cleanup where the junk was "protected" from being
 	# deleted. Purge later by not having in %valid.
 	# delete $valid{$file}; <- will be recreated RSN either way
       die("Found empty index file $file. Delete this manually or use --force if the repository is no longer interesting. \nExiting to prevent deletion of cache contents.\n") unless $force;
@@ -702,7 +702,7 @@ for(<*.deb>, <*.bz2>, <*.gz>, <*.dsc>) {
    }
 }
 
-# also remove void .complete files, created by broken versions of apt-cacher in rare conditions
+# also remove void .complete files, created by broken versions of pkg-cacher in rare conditions
 chdir "$cfg->{cache_dir}/private" && -w "." || die "Could not enter the cache dir";
 for(<*.deb.complete>, <*.bz2.complete>, <*.gz.complete>, <*.dsc.complete>) {
    s/.complete$//;

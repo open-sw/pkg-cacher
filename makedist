@@ -1,0 +1,14 @@
+#!/bin/sh
+
+VERSION=1.0.0
+
+DIR=`pwd`
+PRODUCT=`basename $DIR`
+
+cd ..
+rm -f $PRODUCT-$VERSION
+ln -sf $DIR $PRODUCT-$VERSION
+
+tar -cjf $PRODUCT-$VERSION.tar.bz2 --exclude=.git --exclude='*.swp' --dereference $PRODUCT-$VERSION
+
+rm -f $PRODUCT-$VERSION

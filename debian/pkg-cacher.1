@@ -2,17 +2,17 @@
 .\" NAME should be all caps, SECTION should be 1-8, maybe w/ subsection
 .\" other parms are allowed: see man(7), man(1)
 .SH NAME
-apt\-cacher \- caching proxy for Debian packages
+pkg\-cacher \- caching proxy for Debian packages
 .SH SYNOPSIS
 .SS Server:
-.B apt\-cacher 
+.B pkg\-cacher 
 .I [-i|-d] [-c configfile ] [-p pidfile] [-r directory] [-R retries] [config_option=foo] [-h|--help] 
 
 .SS Client:
-.B http://apt\-cacher.server:3142[/apt\-cacher]/
+.B http://pkg\-cacher.server:3142[/pkg\-cacher]/
 .I "[mirror] / [distribution]"
 .SH "DESCRIPTION"
-.B Apt\-cacher
+.B Pkg\-cacher
 is a caching proxy for Debian packages, allowing a number of computers to share
 a single cache. Packages requested from the cache only need to be downloaded
 from the Debian mirrors once, no matter how many local machines need to install
@@ -27,7 +27,7 @@ Stand-alone daemon-mode. Fork and run in the background
 Inetd daemon-mode: Only use in /etc/inetd.conf
 .TP
 .B \-c configfile 
-Specify alternative configuration file to default [/etc/apt\-cacher/apt\-cacher.conf]
+Specify alternative configuration file to default [/etc/pkg\-cacher/pkg\-cacher.conf]
 .TP
 .B \-p pidfile
 Write PID of running process to this file.
@@ -45,47 +45,47 @@ Override values in configuration file. Can be given multiple times.
 Print brief usage.
 .SH USAGE
 .PP
-Setting up apt\-cacher involves two stages: installing apt\-cacher itself on a
+Setting up pkg\-cacher involves two stages: installing pkg\-cacher itself on a
 single machine on your network to act as a server and configuring all client
 machines to use the server's cache.
 .PP
-Apt\-cacher can be installed to run either as a daemon [preferred] or as a CGI
-script on a web server such as Apache. When a client (apt\-get(1), aptitude(8),
-synaptic(8) etc.) requests a package from the cache machine, the request is
-handled by apt\-cacher which checks whether it already has that particular
+Pkg\-cacher can be installed to run either as a daemon [preferred] or as a CGI
+script on a web server such as Apache. When a client (pkg\-get(1), pkgitude(8),
+synpkgic(8) etc.) requests a package from the cache machine, the request is
+handled by pkg\-cacher which checks whether it already has that particular
 package. If so, the package is returned immediately to the client for
 installation. If not, or if the package in the local cache has been superseded
 by a more recent version, the package is fetched from the specified
 mirror. While being fetched it is simultaneously streamed to the client, and
 also saved to the local cache for future use.
 .PP
-Other client machines on your network do not need apt\-cacher installed in order
+Other client machines on your network do not need pkg\-cacher installed in order
 to use the server cache. The only modification on each client computer is to
 direct it to use the server cache. See CLIENT CONFIGURATION below for ways of
 doing this.
 .SH SERVER INSTALLATION
-Apt\-cacher can be installed in various ways on the server. The recommended way
+Pkg\-cacher can be installed in various ways on the server. The recommended way
 is by running the program as a daemon. This should give the best performance and
 the lowest overall memory usage.
 
 .SH Daemon Mode
 .SS Stand-alone Daemon:
-Edit the file /etc/default/apt\-cacher and change AUTOSTART=1, then run (as
+Edit the file /etc/default/pkg\-cacher and change AUTOSTART=1, then run (as
 root)
 .IP
-/etc/init.d/apt\-cacher start
+/etc/init.d/pkg\-cacher start
 .PP
 to start the daemon.
 .SS Inetd Daemon:
 Edit /etc/inetd.conf and add the line
 .IP
-3142 stream tcp nowait www-data /usr/sbinc/apt\-cacher/apt\-cacher apt\-cacher \-i
+3142 stream tcp nowait www-data /usr/sbinc/pkg\-cacher/pkg\-cacher pkg\-cacher \-i
 .PP
 Restart or send SIGHUP to inetd after saving the file. This is a good method if
 you do not wish the daemon to be loaded all the time.
 .PP
 In either daemon mode, clients can access the server using
-.B http://apt\-cacher.server:port/
+.B http://pkg\-cacher.server:port/
 .PP
 NOTE: in inetd mode access control checks are not performed and the
 allowed_hosts and denied_hosts options have no effect. Access controls can be
@@ -93,18 +93,18 @@ implemented using using inetd or tcpd wrapper. See README.Debian for further
 details.
 .SH CGI Mode
 This is not recommended for long-term use because it brings a visible
-performance impact on the network and server speed.  By default, apt\-cacher
+performance impact on the network and server speed.  By default, pkg\-cacher
 package adds a default configuration profile to Apache.  Clients can access the
 server using
-.B http://apt\-cacher.server[:port]/apt\-cacher/.
+.B http://pkg\-cacher.server[:port]/pkg\-cacher/.
 
 .SH SERVER CONFIGURATION OPTIONS
-Apt\-cacher uses a configuration file for setting important
+Pkg\-cacher uses a configuration file for setting important
 options. Additionally there are few command line options to control 
 behaviour. See COMMAND-LINE OPTIONS above.
 .PP
 The default configuration file is
-.B /etc/apt\-cacher/apt\-cacher.conf.
+.B /etc/pkg\-cacher/pkg\-cacher.conf.
 It is read every time the daemon starts or CGI/inetd slave are
 executed. Therefore a stand-alone daemon may need to be restarted or reloaded
 using the init script in order to reread its configuration. A running daemon
@@ -123,12 +123,12 @@ individual list members.
 The options available in the config file (and their default settings) are:
 .SS Universal Options 
 .TP
-.B cache_dir [/var/cache/apt\-cacher]
-The directory where apt\-cacher will store local copies of all packages
+.B cache_dir [/var/cache/pkg\-cacher]
+The directory where pkg\-cacher will store local copies of all packages
 requested. This can grow to many hundreds of MB, so make sure it is on a
 partition with plenty of room. NOTE: the cache directory needs to contain some
 subdirectories for correct storage management.  If you try to create a custom
-directory, please use the script /usr/share/apt\-cacher/install.pl or use the
+directory, please use the script /usr/share/pkg\-cacher/install.pl or use the
 initially created cache directory as example.
 .TP
 .B admin_email [root@localhost]
@@ -142,43 +142,43 @@ return errors if they are missing.
 .B allowed_locations
 Only allow access to specific upstream mirrors. The requested URL must match an
 item in this list for access to be granted. The part of the URL referring to the
-apt\-cacher server itself (http://apt\-cacher.server:port[/apt\-cacher]/) is
+pkg\-cacher server itself (http://pkg\-cacher.server:port[/pkg\-cacher]/) is
 ignored. Matching begins immediately after that.
 .TP
 .B path_map
 A mapping scheme to rewrite URLs, which converts the first part of the URL after
-the apt\-cacher server name to a remote mirror. For example, if
+the pkg\-cacher server name to a remote mirror. For example, if
 you set
 .IP "" 9
 path_map = debian ftp.debian.org/debian
 .IP "" 7
 retrieving 
 .IP "" 9
-http://apt\-cacher.server:3142/debian/dists/stable/Release 
+http://pkg\-cacher.server:3142/debian/dists/stable/Release 
 .IP "" 7
 will actually fetch
 .IP "" 9
-http://apt\-cacher.server:3142/\:ftp.debian.org/debian/dists/stable/Release 
+http://pkg\-cacher.server:3142/\:ftp.debian.org/debian/dists/stable/Release 
 .TP  7
 .B generate_reports [1]
 Whether to generate traffic reports daily. Traffic reports can be accessed by
 pointing a browser to
 .IP
-http://apt\-cacher.server:3142/report/ [daemon mode] or
+http://pkg\-cacher.server:3142/report/ [daemon mode] or
 .IP
-http://apt\-cacher.server[:port]/apt\-cacher/report/ [CGI mode].
+http://pkg\-cacher.server[:port]/pkg\-cacher/report/ [CGI mode].
 .TP
 .B clean_cache [1]
 Whether to flush obsolete versions of packages from your cache daily. You can
 check what will be done by running
 .IP "" 9
-.B /usr/share/apt\-cacher-cleaner.pl \-s 
+.B /usr/share/pkg\-cacher-cleaner.pl \-s 
 .IP "" 7
 which will just show what would be done to the contents of the cache. A package
 version is not obsolete if any of the distributions (stable, testing, etc) or
 architectures you use reference it.  It should be safe to leave this on.
 .TP
-.B logdir [/var/log/apt\-cacher]
+.B logdir [/var/log/pkg\-cacher]
 Directory to use for the access and error log files and traffic report. The
 access log records all successful package requests using a timestamp, whether
 the request was fulfilled from cache, the IP address of the requesting computer,
@@ -193,7 +193,7 @@ files is checked on each access by comparing time stamps in HTTP headers on the
 server with those stored locally.
 .TP
 .B http_proxy []
-Apt\-cacher can pass all its requests to an external http proxy like
+Pkg\-cacher can pass all its requests to an external http proxy like
 Squid, which could be very useful if you are using an ISP that blocks
 port 80 and requires all web traffic to go through its proxy. The
 format is 'hostname:port'.
@@ -262,11 +262,11 @@ The daemon can be resticted to listen only on particular local IP
 address(es). Single item or list of IPs. Use with care.
 .TP
 .B allowed_hosts [*]
-If your apt\-cacher server is directly connected to the Internet and you are
+If your pkg\-cacher server is directly connected to the Internet and you are
 worried about unauthorised fetching of packages through it, you can specify a
 range of IP addresses that are allowed to use it. Localhost (127.0.0.1) is
 always allowed, other addresses must be matched by allowed_hosts and not by
-denied_hosts to be permitted to use the cache.  Note that by default apt\-cacher
+denied_hosts to be permitted to use the cache.  Note that by default pkg\-cacher
 will allow requests from any client, so set a range here if you want to restrict
 access. This can be a single item, list, IP address with netmask or IP range See
 the default configuration file for further details and examples.
@@ -282,13 +282,13 @@ Like allowed_hosts for IPv6 clients.
 Like denied_hosts for IPv6 clients.
 .SH CLIENT CONFIGURATION
 .PP
-There are two different ways of configuring clients to use apt\-cacher's
+There are two different ways of configuring clients to use pkg\-cacher's
 cache. Ensure that you do not use a mixture of both methods. Changing both
 proxy settings and base URLs can create some confusion.
 .TP
 .B Access cache like a mirror
-To use the cache in this way, edit /etc/apt/sources.list on each client and
-prepend the address of the apt\-cacher server to each deb/src line. 
+To use the cache in this way, edit /etc/pkg/sources.list on each client and
+prepend the address of the pkg\-cacher server to each deb/src line. 
 .IP
 For example, if you have:
 .IP "" 9	
@@ -296,19 +296,19 @@ deb http://ftp.debian.org stable main
 .IP "" 7 
 change it to read either
 .IP "" 9
-deb http://apt\-cacher.server[:port]/ftp.debian.org stable main [server in daemon mode]
+deb http://pkg\-cacher.server[:port]/ftp.debian.org stable main [server in daemon mode]
 .IP "" 7
 or	
 .IP "" 9
-deb http://apt\-cacher.server[:port]/apt\-cacher/ftp.debian.org stable main [server in CGI mode]
+deb http://pkg\-cacher.server[:port]/pkg\-cacher/ftp.debian.org stable main [server in CGI mode]
 .TP 
 .B Access cache like a proxy
-For clients to use the cache in this way, set the apt\-cacher server as a proxy
-on each client by setting the proxy URL in apt.conf (see apt.conf(5) for
+For clients to use the cache in this way, set the pkg\-cacher server as a proxy
+on each client by setting the proxy URL in pkg.conf (see pkg.conf(5) for
 details).
 .IP
 It is not recommended to set the http_proxy environment variable as this may
-effect a wide variety of applications using a variety of URLs. Apt\-cacher will
+effect a wide variety of applications using a variety of URLs. Pkg\-cacher will
 not work as a general purpose web cache!
 .PP
 .SH FAQ
@@ -317,16 +317,16 @@ not work as a general purpose web cache!
 A: Almost! A bit additional work is also required to make them useable and
 persistent in the cache.
 .PP
-First: alongside with the debs apt\-cacher stores additional information: a
+First: alongside with the debs pkg\-cacher stores additional information: a
 flag file to verify that the package is completely downloaded, and a file with
 HTTP headers that have been sent from the server.
 If you copy .debs straight into the storage directory and don't add those
 things, fetching them *will* fail.
 .PP
-Fortunately Apt\-cacher now comes with an import helper script to make things
-easier. Just put a bunch of .debs into /var/cache/apt\-cacher/import (or
+Fortunately Pkg\-cacher now comes with an import helper script to make things
+easier. Just put a bunch of .debs into /var/cache/pkg\-cacher/import (or
 a directory called 'import' inside whatever you've set your cache dir to be),
-and run /usr/share/apt\-cacher/apt\-cacher\-import.pl (you can specify
+and run /usr/share/pkg\-cacher/pkg\-cacher\-import.pl (you can specify
 alternative source directory with the first parameter). The script will run
 through all the package files it finds in that dir and move them around to the
 correct locations plus create additional flag/header files. Run it with "\-h" to
@@ -338,14 +338,14 @@ Second: if the daily cleanup operation is enabled (see clean_cache option above)
 and there is no Packages.gz (or .bz2) file that refers to the new files, the
 package files will be removed really soon. From another point of view: if there are
 potential clients that would download these packages and the clients did run
-"apt\-get update" using apt\-cacher once, there is no reason to worry.
+"pkg\-get update" using pkg\-cacher once, there is no reason to worry.
 .PP
 .B Q: Does the daily generation of reports or cleaning the cache depend
-.B on whether apt\-cacher is running continuously as a daemon?
+.B on whether pkg\-cacher is running continuously as a daemon?
 .PP
 A: No, the regular maintenance jobs are independent of a running server. They
 are executed by cron and use only static data like logs and cached index files
-and package directory listing.  However, apt\-cacher should be configured
+and package directory listing.  However, pkg\-cacher should be configured
 correctly because cleanup runs it directly (in inetd mode) to refresh the
 Packages/Sources files.
 .PP
@@ -369,37 +369,37 @@ omitted, * is assumed.  denied_hosts must not have an "*" value, use empty
 allowed_hosts setting if you want that.
 .PP
 .B Q: generate_reports: how does being able to view the reports depend on
-.B the web server you are running?  Are they only available if apt\-cacher
+.B the web server you are running?  Are they only available if pkg\-cacher
 is running on port 80?
 .PP
 The report is generated using a script (started by a cron job, see above) and
 is stored as $logdir/report.html. You can access it using the "/report" path in
-the access URL. If apt\-cacher is running in CGI mode, then the
+the access URL. If pkg\-cacher is running in CGI mode, then the
 URL for the browser looks like 
-.B http://apt\-cacher.server[:port]/apt-cacher/report/.
+.B http://pkg\-cacher.server[:port]/pkg-cacher/report/.
 .SH LIMITATIONS
-Apt\-cacher currently only handles forwarding to HTTP sources. Support for
+Pkg\-cacher currently only handles forwarding to HTTP sources. Support for
 other access methods (ftp, rsync) is not currently planned.
 .SH SIGNALS
-Apt\-cacher handles the following signals:
+Pkg\-cacher handles the following signals:
 .TP
 .B HUP
 Causes the configuration file to be re\-read.
 .TP
 .B USR1
-Toggles printing of debug output to /var/log/apt\-cacher/error.log
+Toggles printing of debug output to /var/log/pkg\-cacher/error.log
 .SH FILES
 .TP
-.B /etc/apt\-cacher/apt\-cacher.conf
+.B /etc/pkg\-cacher/pkg\-cacher.conf
 main configuration file
 .TP
-.B /var/log/apt\-cacher
+.B /var/log/pkg\-cacher
 log directory, rotated by logrotate if available
 .TP
 .B /var/log/report.html
 report page, generated by the helper script
 .SH AUTHOR
-Apt\-cacher was originally written by Nick Andrews <nick@zeta.org.au>.  This
+Pkg\-cacher was originally written by Nick Andrews <nick@zeta.org.au>.  This
 manual page was originally written by Jonathan Oxer <jon@debian.org>, for the
 Debian GNU/Linux system (but may be used by others). It was maintained by Eduard
 Bloch <blade@debian.org>, and it is now maintained by Mark Hindley

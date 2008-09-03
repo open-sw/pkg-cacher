@@ -1,7 +1,7 @@
 #! /usr/bin/perl
-# This is a library file for Apt-cacher to allow code
-# common to Apt-cacher itself plus its supporting scripts
-# (apt-cacher-report.pl and apt-cacher-cleanup.pl) to be
+# This is a library file for Pkg-cacher to allow code
+# common to Pkg-cacher itself plus its supporting scripts
+# (pkg-cacher-report.pl and pkg-cacher-cleanup.pl) to be
 # maintained in one location.
 
 # This function reads the given config file into the
@@ -17,8 +17,8 @@ our $cfg;
 sub read_config {
     # set the default config variables
     my %config = (
-		  cache_dir => '/var/log/cache/apt-cacher',
-		  logdir => '/var/log/apt-cacher',
+		  cache_dir => '/var/log/cache/pkg-cacher',
+		  logdir => '/var/log/pkg-cacher',
 		  admin_email => 'root@localhost',
 		  generate_reports => 0,
 		  expire_hours => 0,
@@ -79,9 +79,10 @@ sub check_install() {
 	die "Unable to get user:group";
     }
 
-    foreach my $dir ($cfg->{cache_dir}, $cfg->{logdir}, "$cfg->{cache_dir}/private",
-		     "$cfg->{cache_dir}/import", "$cfg->{cache_dir}/packages",
-		     "$cfg->{cache_dir}/headers", "$cfg->{cache_dir}/temp") {
+    foreach my $dir ($cfg->{cache_dir}, $cfg->{logdir}, 
+		    "$cfg->{cache_dir}/headers", "$cfg->{cache_dir}/import",
+		    "$cfg->{cache_dir}/packages", "$cfg->{cache_dir}/private",
+		    "$cfg->{cache_dir}/temp", "$cfg->{cache_dir}/cache") {
 	if (!-d $dir) {
 	    print "Warning: $dir missing. Doing mkdir($dir, 0755)\n";
 	    mkdir($dir, 0755) || die "Unable to create $dir";
@@ -350,7 +351,14 @@ my $index_files_regexp =
 	       'release$',
 	       'release\..*',
 	       'srclist.*\.bz2',
-	       'Translation-.+\.bz2'
+	       'Translation-.+\.bz2',
+	       'filelists\.sqlite\.bz2',
+	       'filelists\.xml\.gz',
+	       'other\.sqlite\.bz2',
+	       'other\.xml\.gz',
+	       'primary\.sqlite\.bz2',
+	       'primary\.xml\.gz',
+	       'repomd\.xml'
 	      )
 	)
   . ')$';
@@ -405,8 +413,8 @@ sub remove_apache {
 	    open(NEW, "> $new")         or die "can't open $new: $!";
 
 	    while (<OLD>) {
-		$done += s/# This line has been appended by the Apt\-cacher install script/ /;
-		$done += s/Include \/etc\/apt\-cacher\/apache.conf/ /;
+		$done += s/# This line has been appended by the Pkg\-cacher install script/ /;
+		$done += s/Include \/etc\/pkg\-cacher\/apache.conf/ /;
 		(print NEW $_)          or die "can't write to $new: $!";
 	    }
 

@@ -4,7 +4,7 @@ set -e
 
 case "$1" in
     purge)
-		rm -rf /var/cache/apt-cacher /var/log/apt-cacher
+		rm -rf /var/cache/pkg-cacher /var/log/pkg-cacher
 	;;
 	
 esac

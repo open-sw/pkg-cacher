@@ -1,24 +1,24 @@
 #!/usr/bin/perl
 
-# apt-cacher-import.pl
-# Script to import .deb packages into the Apt-cacher package caching system.
-# This script does not need to be run when setting up Apt-cacher for the first
+# pkg-cacher-import.pl
+# Script to import .deb packages into the Pkg-cacher package caching system.
+# This script does not need to be run when setting up Pkg-cacher for the first
 # time: its purpose is to initialise .deb packages that have been copied in
-# from some other source, such as a local mirror. Apt-cacher doesn't store
+# from some other source, such as a local mirror. Pkg-cacher doesn't store
 # it's cached .debs in plain format, it prepends HTTP headers to them to send
 # out to clients when a package is requested. It also keeps track of which
 # packages are fully downloaded by touching a '.complete' file in the 'private'
 # directory in the cache. If .debs are just copied straight into the cache
-# dir Apt-cacher won't use them because it thinks they are both corrupt (no
+# dir Pkg-cacher won't use them because it thinks they are both corrupt (no
 # headers) and incomplete (no .complete file). This script allows you to
 # copy a bunch of .debs into an import dir, then run this script to prepend
 # the HTTP headers and touch the .complete file after moving them to the cache
 # dir.
 #
 # Usage:
-# 1. Place your plain debs into /var/cache/apt-cacher/import (or where-ever
+# 1. Place your plain debs into /var/cache/pkg-cacher/import (or where-ever
 #    you set the cache dir to be)
-# 2. Run this script: /usr/share/apt-cacher-import.pl
+# 2. Run this script: /usr/share/pkg-cacher-import.pl
 #
 # Copyright (C) 2004, Jonathan Oxer <jon@debian.org>
 # Copyright (C) 2005, Eduard Bloch <blade@debian.org>
@@ -29,7 +29,7 @@
 #############################################################################
 ### configuration ###########################################################
 # Include the library for the config file parser
-require '/usr/share/apt-cacher/apt-cacher-lib.pl';
+require '/usr/share/pkg-cacher/pkg-cacher-lib.pl';
 
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
 use File::Basename;
@@ -40,7 +40,7 @@ use HTTP::Date;
 use strict;
 use warnings;
 
-my $configfile = '/etc/apt-cacher/apt-cacher.conf';
+my $configfile = '/etc/pkg-cacher/pkg-cacher.conf';
 my $help;
 my $quiet; # both not used yet
 my $noact;
@@ -100,7 +100,7 @@ my $headerdate = time2str();
 
 sub importrec {
     my $import_dir=shift;
-    chdir($import_dir) || die "apt-cacher-import.pl: can't open the import directory ($import_dir)";
+    chdir($import_dir) || die "pkg-cacher-import.pl: can't open the import directory ($import_dir)";
     #print "Entering: $import_dir\n";
 
     if($recmode) {
@@ -127,7 +127,7 @@ sub importrec {
 	# Generate a header
 	my $httpheader = "HTTP/1.1 200 OK
 Date: ".$headerdate."
-Server: Apache \(Unix\) apt-cacher
+Server: Apache \(Unix\) pkg-cacher
 Last-Modified: ".$headerdate."
 ETag: \"".$headeretag."\"
 Accept-Ranges: bytes
@@ -177,10 +177,10 @@ print "Packages imported: $packagesimported\n" if !$quiet;
 exit 0;
 
 sub help {
-    die "Usage: $0 [ -c apt-cacher.conf ] [ -q | --quiet ] [ -R | --recursive ] [ -r | --readonly ] [ -s | --symlinks ] [ package-source-dir ]
+    die "Usage: $0 [ -c pkg-cacher.conf ] [ -q | --quiet ] [ -R | --recursive ] [ -r | --readonly ] [ -s | --symlinks ] [ package-source-dir ]
 
-If -c is omited, '-c /etc/apt-cacher/apt-cacher.conf' is assumed.
-If package-source-dir is omited, the filename from apt-cacher.conf is used.
+If -c is omited, '-c /etc/pkg-cacher/pkg-cacher.conf' is assumed.
+If package-source-dir is omited, the filename from pkg-cacher.conf is used.
 -R descend into subdirectories to find source package files.
 -r read but do not move the source files. Instead, create hardlinks or real copies.
 -s create symlinks to the source files and not move them. If the

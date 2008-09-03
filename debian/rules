@@ -35,7 +35,7 @@ build-indep-stamp:
 # Add here command to compile/build the arch indep package.
 # It's ok not to do anything here, if you don't need to build
 #  anything for this package.
-#/usr/bin/docbook-to-man debian/apt-cacher.sgml > apt-cacher.1
+#/usr/bin/docbook-to-man debian/pkg-cacher.sgml > pkg-cacher.1
 
 	touch build-indep-stamp
 
@@ -58,24 +58,24 @@ install: build
 	dh_clean -k
 	dh_installdirs usr/sbin
 
-	install -m644 apt-cacher.conf debian/apt-cacher/etc/apt-cacher/apt-cacher.conf
-	install -m644 apache.conf debian/apt-cacher/etc/apt-cacher/apache.conf
-	install -m755 apt-cacher.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher.pl
-	install -m755 apt-cacher2 debian/apt-cacher/usr/share/apt-cacher/apt-cacher
-	install -m755 apt-proxy-to-apt-cacher debian/apt-cacher/usr/share/apt-cacher/
-	ln -sf   ../share/apt-cacher/apt-cacher debian/apt-cacher/usr/sbin/apt-cacher 
-	install -m755 apt-cacher-report.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-report.pl
-	install -m755 apt-cacher-cleanup.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-cleanup.pl
-	install -m755 apt-cacher-precache.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-precache.pl
-	install -m755 apt-cacher-format-transition.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-format-transition.pl
-	install -m755 apt-cacher-import.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-import.pl
-	install -m755 apt-cacher-lib.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-lib.pl
-	install -m755 apt-cacher-lib-cs.pl debian/apt-cacher/usr/share/apt-cacher/apt-cacher-lib-cs.pl
-	install -m755 apt-cacher.cron.daily debian/apt-cacher/etc/cron.daily/apt-cacher
-	install -m755 install.pl debian/apt-cacher/usr/share/apt-cacher/install.pl
-	install -m755 remove.pl debian/apt-cacher/usr/share/apt-cacher/remove.pl
-	install -m755 upgrade.pl debian/apt-cacher/usr/share/apt-cacher/upgrade.pl
-	perl -pe 's/^my \$$version=.*/my \$$version="'$(shell dpkg-parsechangelog  | grep ^Version | cut -f2 -d\  )'";/' -i $(CURDIR)/debian/apt-cacher/usr/share/apt-cacher/*
+	install -m644 pkg-cacher.conf debian/pkg-cacher/etc/pkg-cacher/pkg-cacher.conf
+	install -m644 apache.conf debian/pkg-cacher/etc/pkg-cacher/apache.conf
+	install -m755 pkg-cacher.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher.pl
+	install -m755 pkg-cacher2 debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher
+	install -m755 apt-proxy-to-pkg-cacher debian/pkg-cacher/usr/share/pkg-cacher/
+	ln -sf   ../share/pkg-cacher/pkg-cacher debian/pkg-cacher/usr/sbin/pkg-cacher 
+	install -m755 pkg-cacher-report.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-report.pl
+	install -m755 pkg-cacher-cleanup.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-cleanup.pl
+	install -m755 pkg-cacher-precache.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-precache.pl
+	install -m755 pkg-cacher-format-transition.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-format-transition.pl
+	install -m755 pkg-cacher-import.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-import.pl
+	install -m755 pkg-cacher-lib.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-lib.pl
+	install -m755 pkg-cacher-lib-cs.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-lib-cs.pl
+	install -m755 pkg-cacher.cron.daily debian/pkg-cacher/etc/cron.daily/pkg-cacher
+	install -m755 install.pl debian/pkg-cacher/usr/share/pkg-cacher/install.pl
+	install -m755 remove.pl debian/pkg-cacher/usr/share/pkg-cacher/remove.pl
+	install -m755 upgrade.pl debian/pkg-cacher/usr/share/pkg-cacher/upgrade.pl
+	perl -pe 's/^my \$$version=.*/my \$$version="'$(shell dpkg-parsechangelog  | grep ^Version | cut -f2 -d\  )'";/' -i $(CURDIR)/debian/pkg-cacher/usr/share/pkg-cacher/*
 
 # Build architecture-independent files here.
 # Pass -i to all debhelper commands in this target to reduce clutter.
@@ -92,11 +92,11 @@ binary-indep: build install
 #	dh_installmime -i
 	dh_installinit -i
 	dh_installcron -i
-	dh_installman -i debian/apt-cacher.1
+	dh_installman -i debian/pkg-cacher.1
 	dh_installinfo -i
 #	dh_undocumented -i
 	dh_installchangelogs  -i
-	dh_link -i /usr/share/apt-cacher/apt-cacher.pl /usr/lib/cgi-bin/apt-cacher
+	dh_link -i /usr/share/pkg-cacher/pkg-cacher.pl /usr/lib/cgi-bin/pkg-cacher
 	dh_compress -i
 	dh_fixperms -i
 	dh_installdeb -i

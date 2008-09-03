@@ -1,5 +1,5 @@
 #! /bin/sh
-# postinst script for apt-cacher
+# postinst script for pkg-cacher
 #
 # see: dh_installdeb(1)
 
@@ -28,11 +28,11 @@ case "$1" in
 
 	# Handle upgrade from checksumming.conf
 
-	CONFDIR=/etc/apt-cacher
-	CONFFILE=$CONFDIR/apt-cacher.conf
+	CONFDIR=/etc/pkg-cacher
+	CONFFILE=$CONFDIR/pkg-cacher.conf
 
 	if [ -f $CONFDIR/checksumming.conf ]; then
-	    if grep -E -q "^[[:space:]]*require.+apt-cacher-lib-cs.pl" $CONFDIR/checksumming.conf; then
+	    if grep -E -q "^[[:space:]]*require.+pkg-cacher-lib-cs.pl" $CONFDIR/checksumming.conf; then
 
 		echo "Importing checksum config from $CONFDIR/checksumming.conf"
 
@@ -49,8 +49,8 @@ case "$1" in
 	    rm $CONFDIR/checksumming.conf
 	fi
 	
-	echo "Running apt-cacher's install script..."
-	/usr/share/apt-cacher/install.pl
+	echo "Running pkg-cacher's install script..."
+	/usr/share/pkg-cacher/install.pl
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)

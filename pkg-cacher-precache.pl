@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 ##
-# apt-cacher-precache.pl
+# pkg-cacher-precache.pl
 # Script for pre-fetching of package data that may be used by users RSN
 #
 # Copyright (C) 2005, Eduard Bloch <blade@debian.org>
@@ -20,7 +20,7 @@ my $priofilter='';
 my $help;
 my $noact=0;
 my $uselists=0;
-my $configfile = '/etc/apt-cacher/apt-cacher.conf';
+my $configfile = '/etc/pkg-cacher/pkg-cacher.conf';
 
 my %options = (
     "h|help" => \$help,
@@ -37,7 +37,7 @@ my %options = (
 &help if ($help);
 
 # Include the library for the config file parser
-require '/usr/share/apt-cacher/apt-cacher-lib.pl';
+require '/usr/share/pkg-cacher/pkg-cacher-lib.pl';
 my $cfgref;
 eval {
         $cfgref = read_config($configfile);
@@ -60,8 +60,8 @@ Options:
                        (default: 'testing|etch')
  -q, --quiet           suppress verbose output
  -l, --list-dir=DIR    also use pure/compressed files from the specified dir
-                       (eg. /var/log/apt-cacher) to get the package names from.
-                       Words before | are ignored (in apt-cacher logs). To
+                       (eg. /var/log/pkg-cacher) to get the package names from.
+                       Words before | are ignored (in pkg-cacher logs). To
                        create a such list from clients, see below.
  -p, --by-priority=RE  Perl regular expression for priorities to be looked for
                        when selecting packages. Implies threating all packages
@@ -70,7 +70,7 @@ Options:
                        looking at priority)
 
 NOTE: the options may change in the future.
-You can feed existing package lists or old apt-cacher logs into the selection
+You can feed existing package lists or old pkg-cacher logs into the selection
 algorithm by using the -l option above. If the version is omited (eg. for lists
 created with \"dpkg --get-selections\" then the packages may be redownloaded).
 To avoid this, use following one-liner to fake a list with version infos:
@@ -81,7 +81,7 @@ dpkg -l | perl -ne 'if(/^(i.|.i)\\s+(\\S+)\\s+(\\S+)/) { print \"\$2_\$3_i386.de
 
 syswrite(STDOUT,
 "This is an experimental script. You have been warned.
-Run before apt-cacher-cleanup.pl, otherwise it cannot track old downloads.
+Run before pkg-cacher-cleanup.pl, otherwise it cannot track old downloads.
 ") if !$quiet;
 
 my $pcount=0;
@@ -100,7 +100,7 @@ sub get() {
    $having{$filename}=1;
 
    if(!$noact) {
-      open(fh, "| REMOTE_ADDR=PRECACHING /usr/share/apt-cacher/apt-cacher -i -c $configfile >/dev/null");
+      open(fh, "| REMOTE_ADDR=PRECACHING /usr/share/pkg-cacher/pkg-cacher -i -c $configfile >/dev/null");
       print fh "GET /$path_info\r\nConnection: Close\r\n\r\n";
       close(fh);
    }

@@ -1,13 +1,13 @@
 #!/bin/sh
 
-# Only do anything if apt-cacher is actually installed
-if [ ! -x /usr/share/apt-cacher/apt-cacher.pl ]; then
+# Only do anything if pkg-cacher is actually installed
+if [ ! -x /usr/share/pkg-cacher/pkg-cacher.pl ]; then
   exit 0
 fi
 
 # Run the report generator
-/usr/share/apt-cacher/apt-cacher-report.pl >/dev/null
+/usr/share/pkg-cacher/pkg-cacher-report.pl >/dev/null
 
 # Run the cache cleaner
-/usr/share/apt-cacher/apt-cacher-cleanup.pl 2>/dev/null
+/usr/share/pkg-cacher/pkg-cacher-cleanup.pl 2>/dev/null
 
