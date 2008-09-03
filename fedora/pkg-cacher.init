@@ -1,20 +1,22 @@
 #! /bin/sh
 #
 
+## Fedora Info
+# chkconfig: 2345 20 80
 ### BEGIN INIT INFO
 # Provides:          pkg-cacher
 # Required-Start:    
 # Should-Start:      mountall
 # Required-Stop:     
 # Should-Stop:       
-# Default-Start:     S 2 3 4 5
+# Default-Start:     2 3 4 5
 # Default-Stop:      0 6
 # Short-Description: pkg-cacher package caching proxy daemon 
 # Description:       The pkg-cacher service is used to cache packages for a system or LAN
 ### END INIT INFO
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-DESC="Apt-Cacher"
+DESC="Pkg-Cacher"
 NAME=pkg-cacher
 DAEMON=/usr/sbin/$NAME
 PIDFILE=/var/run/$NAME.pid

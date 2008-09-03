@@ -3,7 +3,7 @@
 # IMPORTANT: check the pkg-cacher.conf file before using pkg-cacher as daemon.
 
 # set to 1 to start the daemon at boot time
-AUTOSTART=0
+AUTOSTART=1
 
 # extra settings to override the ones in pkg-cacher.conf
 # EXTRAOPT=" daemon_port=3142 limit=30 "

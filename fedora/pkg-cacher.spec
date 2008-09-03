@@ -67,6 +67,10 @@ getent passwd pkg-cacher > /dev/null || \
 	useradd -r -d /var/cache/pkg-cacher -g pkg-cacher -s /sbin/nologin \
 	-c "pkg-cacher user" pkg-cacher > /dev/null 2>&1
 
+%post
+chkconfig pkg-cacher on
+service pkg-cacher start
+
 %clean
 rm -rf $RPM_BUILD_ROOT
 
