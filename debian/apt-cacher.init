@@ -1,0 +1,88 @@
+#! /bin/sh
+#
+
+### BEGIN INIT INFO
+# Provides:          apt-cacher
+# Required-Start:    
+# Should-Start:      mountall
+# Required-Stop:     
+# Should-Stop:       
+# Default-Start:     S 2 3 4 5
+# Default-Stop:      0 6
+# Short-Description: apt-cacher package caching proxy daemon 
+# Description:       The apt-cacher service is used to cache packages for a system or LAN
+### END INIT INFO
+
+PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
+DESC="Apt-Cacher"
+NAME=apt-cacher
+DAEMON=/usr/sbin/$NAME
+PIDFILE=/var/run/$NAME.pid
+SCRIPTNAME=/etc/init.d/$NAME
+
+# Gracefully exit if the package has been removed.
+test -x $DAEMON || exit 0
+
+# Read config file if it is present.
+if [ -r /etc/default/$NAME ]
+then
+	. /etc/default/$NAME
+fi
+
+#
+#	Function that starts the daemon/service.
+#
+d_start() {
+
+    if test "$AUTOSTART" = 1 ; then
+        start-stop-daemon --start --quiet  \
+        --exec $DAEMON -- -R 3 -d -p $PIDFILE $EXTRAOPT
+    else
+        echo -n " (not enabled in /etc/default/$NAME)";
+    fi
+}
+
+#
+#	Function that stops the daemon/service.
+#
+d_stop() {
+	start-stop-daemon --stop --quiet --pidfile $PIDFILE \
+		--name $NAME
+}
+
+case "$1" in
+  start)
+	echo -n "Starting $DESC: $NAME"
+	d_start
+	echo "."
+	;;
+  stop)
+	echo -n "Stopping $DESC: $NAME"
+	d_stop
+	echo "."
+	;;
+  restart)
+	echo -n "Restarting $DESC: $NAME"
+	d_stop
+	sleep 1
+	d_start
+	echo "."
+	;;
+  force-reload|reload)
+	echo -n "Reloading configuration of $DESC: $NAME"
+    pid=`cat $PIDFILE`
+    if test -z "$pid" ; then
+        echo ", NOT RUNNING"
+    else
+        kill -HUP $pid
+    fi
+	echo "."
+	;;
+  *)
+	# echo "Usage: $SCRIPTNAME {start|stop|restart|reload|force-reload}" >&2
+	echo "Usage: $SCRIPTNAME {start|stop|restart|force-reload}" >&2
+	exit 1
+	;;
+esac
+
+exit 0

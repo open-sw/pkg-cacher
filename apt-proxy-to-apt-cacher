@@ -1,0 +1,167 @@
+#!/usr/bin/perl
+
+use strict;
+
+use Getopt::Long qw(:config no_ignore_case bundling pass_through);
+use Cwd 'abs_path';
+
+my $help;
+my $configfile = '/etc/apt-cacher/apt-cacher.conf';
+my $apconfigfile = '/etc/apt-proxy/apt-proxy-v2.conf';
+
+my %options = (
+    "h|help" => \$help,
+    "c|cfgfile=s"        => \$configfile,
+    "C|apconfigfile=s"        => \$apconfigfile,
+);
+
+&help unless ( GetOptions(%options));
+&help if ($help);
+
+sub help {
+die "
+USAGE: $0 [ options ]
+Transforms configuration and cached data from apt-proxy v2 to apt-cacher 1.x
+
+Options:
+ -c     apt-cacher's config file
+ -C     apt-proxy's  config file
+";
+}
+
+print "Reading apt-proxy's configuration from $apconfigfile\n";
+
+open(my $apc, $apconfigfile) || die "Could not open $apconfigfile. Use the -C option\n";
+
+my %config;
+
+print "Adopting options:\n";
+my $cache_dir;
+
+my $prevkey;
+LINE: while (<$apc>)
+{
+    chomp;
+    if ( /^\t(.*)$/ && defined $prevkey ) {
+        $config{$prevkey}.= " $1 ";
+        next LINE;
+    }
+
+    s/^;.*$//;   # kill off comments
+    s/^\s+//;	# kill off leading spaces
+    s/\s+$//;	# kill off trailing spaces
+
+    next if /^\[DEFAULT/;
+    
+    if(/^\[(.*)\]/) {
+        $config{path_map} .=" ; " if $config{path_map};
+        $config{path_map} .= " $1 ";
+    }
+
+    if ($_)
+    {
+        my ($key, $value) = split(/\s*=\s*/);	# split into key and value pair
+        #print "key: $key, value: $value\n";
+        $prevkey=$key;
+        if($key eq "port") {
+            $config{daemon_port} = $value;
+            print "Port: $value\n";
+        }
+        if($key eq "address") {
+            $config{daemon_addr} = $value;
+            print "Address: $value\n";
+        }
+        if($key eq "http_proxy") {
+            $config{http_proxy} = $value;
+            $config{use_proxy} = 1;
+            print "Proxy: $value\n";
+        }
+        if($key eq "backends") {
+            $prevkey = "path_map";
+            $config{path_map} .= " $value ";
+        }
+        if($key eq "cache_dir") {
+            $cache_dir=$value;
+        }
+    }
+}
+
+my @map = split(/\s+/, $config{path_map});
+for(@map) {
+    # just try to use http on ftp servers and drop rsync versions
+    # s#^ftp:#http:#;
+    # s#^rsync.*##;
+    s#^.*://##;
+}
+$config{path_map} = join(" ", @map);
+
+#for(keys %config) {
+#    print "hm, $_: $config{$_}\n";
+#}
+
+print "Reading apt-cacher's configuration from $configfile\n";
+
+open(CONFIG, $configfile) || die "Unable to open the apt-cacher config file template\n";
+
+my $buf;
+read(CONFIG, $buf, 50000);
+close(CONFIG);
+$buf=~s/\\\n#/\n#/mg; # fix broken multilines
+$buf=~s/\\\n//mg; # merge multilines
+
+my @out = ("# This file has been modified by $0\n# Some lines may have been appended at the bottom of this file\n");
+
+for(split(/\n/, $buf))
+{
+    my $orig=$_;
+
+    s/#.*//;   # kill off comments
+    s/^\s+//;	# kill off leading spaces
+    s/\s+$//;	# kill off trailing spaces
+
+    if ($_)
+    {
+        my ($key, $value) = split(/\s*=\s*/);	# split into key and value pair
+        if(exists $config{$key}) {
+            push @out, "$key = $config{$key}\n";
+            delete $config{$key};
+        }
+        else {
+            push @out, "$orig\n";
+        }
+    }
+    else {
+        push @out, "$orig\n";
+    }
+}
+
+# append the remaining settings
+for(keys %config) {
+    push @out, "\n# extra setting from apt-proxy configuration\n$_ = $config{$_}\n";
+}
+
+print "\n$0 will now modify the apt-cacher.conf file\nand import the data from apt-proxy's cache. Do you wish to continue? [y/n] ";
+my $answer= <STDIN>;
+if($answer eq "y\n") {
+
+    open(CONFIG, ">$configfile") || die "Unable to write apt-cacher config file\n";
+    print CONFIG @out;
+    close(CONFIG);
+    #print join(" ", "Running: ", "/usr/share/apt-cacher/apt-cacher-import.pl", "-c", $configfile, "-r", "-R" , $cache_dir, "\n");
+
+    system("/usr/share/apt-cacher/apt-cacher-import.pl", "-c", $configfile, "-r", "-R" , $cache_dir);
+}
+    
+print "\nStop apt-proxy and start apt-cacher now? [y/n] ";
+$answer= <STDIN>;
+if($answer eq "y\n") {
+    system "/etc/init.d/apt-proxy stop";
+    system "echo AUTOSTART=1 >> /etc/default/apt-cacher";
+    system "/etc/init.d/apt-cacher restart";
+}
+    
+print "\nDisable the apt-proxy in the init configuration (update-rc.d remove)? [y/n] ";
+$answer= <STDIN>;
+if($answer eq "y\n") {
+    system "update-rc.d -f apt-proxy remove";
+}

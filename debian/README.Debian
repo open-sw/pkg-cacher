@@ -1,0 +1,136 @@
+apt-cacher for Debian
+---------------------
+
+SECURITY:
+
+By default, in CGI mode, access to the local mirror is restricted by the default
+settings of the HTTP daemon. In addition, you can limit it within the config
+snipped for Apache(2) (see /etc/apt-cacher/apache.conf) and the
+host_(allowed|denied) lists in /etc/apt-cacher/apt-cacher.conf .
+
+The more important question is how much the local users can be entrusted. Since
+the cached data is (gently) cleaned once a day by a script that unpackages
+Packages*/Sources* files, this step may be sensitive to DOS attacks through
+malicious files. Though the risk is low, make sure that you limit the site
+access (see allowed_locations directive) to a list of mirrors that can be
+trusted.
+
+HINTS FOR APT-PROXY REFUGEES:
+
+apt-cacher should be able to replace apt-proxy almost seamlessly. If configured
+properly, no client should notice a difference. You can use the script
+/usr/share/apt-cacher/apt-proxy-to-apt-cacher to copy the relevant settings to
+apt-cacher and import the cache from apt-proxy's cache. This script:
+
+ - reads server port, proxy config, backend lists and the cache directory name
+   from the apt-proxy configuration
+ - create a path_map directive for apt-cacher.conf from the backend lists
+ - import the cache with apt-cacher-import.pl, stop apt-proxy, start
+   apt-cacher, optionally disable apt-proxy in the startup configuration
+
+USAGE and UPGRADING hints:
+
+ - to reuse cached data stored in the old format (mixed file contents,
+   version <=0.8.6), use the cache upgrade script with the cache directory as
+   the argument. For example:
+ 
+   /usr/share/apt-cacher/apt-cacher-format-transition.pl /var/cache/apt-cacher
+ 
+ - an example inetd.conf line looks like this:
+
+   3142 stream tcp nowait www-data /usr/sbin/tcpd /usr/sbin/apt-cacher -i
+
+ - to enable checksum checks, install the libberkeleydb-perl package and set
+   checksum=1 in the configuration file.  Index files need to be downloaded once
+   (to rebuild the checksum database) which can be achieved by deleting all
+   the *Sources and *Packages files from /var/cache/apt-cacher/packages.
+ 
+ - some people add multiple servers for the same content to sources.list to get
+   server redundancy (make apt-get use the next host if the first is down).
+   This does not work well if you access all of them trough apt-cacher. The
+   workaround is simple: fake some servers using /etc/hosts or a custom DNS
+   server to make your apt-cacher server be accessible with different host
+   names (eg. s1.cache.example.net, s2.cache.example.net, etc. pp.). Then
+   assign different virtual hosts to different entries in sources.list.
+
+MULTIPLE REPOSITORIES:
+
+It has been requested that apt-cacher support being used on a network that hosts
+both Debian and Ubuntu boxes. There are frequent namespace clashes between the 2
+distributions which have files with identical names, but different
+contents. This problem was not envisaged in the original design of apt-cacher
+and is difficult to accommodate.
+
+However, it is possible to workaround this by running a separate apt-cacher
+daemon for each Distribution on a different port with its own cache
+directory. The first daemon will run from /etc/init.d/apt-cacher as normal. For
+the second daemon, run it from /etc/rc.local with command line options to
+override the configuration file. Alternatively, run the daemons from
+/etc/inetd.conf:
+
+Example command-lines are:
+
+ apt-cacher daemon_port=3142 cache_dir=/var/cache/apt-cacher-debian
+ allowed_locations=ftp.debian.org/debian
+
+and
+
+ apt-cacher daemon_port=3141 cache_dir=/var/cache/apt-cacher-ubuntu
+ allowed_locations=archive.ubuntu.com/ubuntu
+
+It is important to set the allowed locations directive so that each daemon
+only caches a particular distribution. This can be combined with the path_map
+option:
+
+ path_map=debian ftp.debian.org/debian allowed_locations=debian
+
+and
+
+ path_map=ubuntu archive.ubuntu.com/ubuntu allowed_locations=ubuntu
+
+to provide a convenient interface for clients.
+
+OLD DOCUMENTATION relevant for the CGI mode:
+
+ - to use apt-cacher with apache2, symlink the file /etc/apt/apt-cacher.conf to
+   /etc/apache2/conf.d/apt-cacher.conf and restart apache2. Then visit
+   http://caching-host/apt-cacher to view the client instructions.
+ 
+ - Note that Apache2 has problems with passing the CGI data without extensive
+   buffering (which makes the apt-get clients hang for a while with the message
+   "waiting for headers"). The problem seems to appear less often if APT's HTTP
+   pipelining is disabled, see below.
+
+ - to use apt-cacher with alternative http daemons, use their configuration
+   systems to map /apt-cacher as a CGI program to apt-cacher.pl, see
+   /etc/apt-cacher/apache.conf for example. You will need to replace the /
+   character between "apt-cacher" and the server part with a ? character.
+
+ - Also note that APT has problems mixing up HTTP/1.0 and HTTP/1.1. If you want
+   to fetch Debian packages with eg. boa as HTTP daemon, add the following line
+   to /etc/apt/apt.conf on the clients:
+   
+Acquire::http::Pipeline-Depth "0";
+
+   Thanks to Andrew M. Bishop <amb@gedanken.demon.co.uk> for this hint.   
+   
+ - use the script apt-cacher-format-transition.pl to convert merged files
+   (apt-cacher's "debs") to separate packages/headers
+
+HISTORY:
+
+This program was originally written by Nick Andrews <nick@zeta.org.au>.
+
+Until version 0.6-1, the cache directory was left behind on uninstallation:
+however, that behaviour has now been changed so that the cache dir is left on
+upgrade, but deleted on uninstallation. The cache dir can become very large so
+it needs to be deleted when the program is no longer required, but to maintain
+cache efficiency it needs to be retained on upgrade.
+
+In April/May 2005, the main script has been partially rewritten by Eduard
+Bloch. It was converted to use separate files for package contents (read: the
+real DEBs) and the HTTP headers. Also time stamping for meta files has been
+introduced and curl was chosen as the default fetcher application.  Also the
+usage of alternative HTTP daemons has been allowed.
+
+ -- Mark Hindley <mark@hindley.org.uk>, Thu, 20 Mar 2008 20:11:38 z

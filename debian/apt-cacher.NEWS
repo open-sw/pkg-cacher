@@ -1,0 +1,83 @@
+apt-cacher (1.6.0) unstable; urgency=low
+
+  * Major new release.
+  * Changed from LWP to libcurl which gives IPv6 support.
+  * Initial experimental support for building Sources and Packages indices from
+    pdiffs. To use run apt-cacher-cleanup.pl with -p option.
+  * Checksumming now uses a Berkeley DB.
+  * Native IPv6 support for daemon mode. If IO::Socket::INET6 is available it
+    will be used, else IPv4 will be used. For Debian, install package
+    libio-socket-inet6-perl
+  * Support for listening on multiple IP addresses. See daemon_addr in
+    configuration file
+
+ -- Mark Hindley <mark@hindley.org.uk>  Wed, 05 Dec 2007 10:45:57 +0000
+
+apt-cacher (1.5.5) unstable; urgency=low
+
+  * Configuration item example_sources_line is no longer used. Instead
+    Sys::Hostname is used to get the fqdn of the host.
+  * Support for index.db-*.gz files which allows use with apt-listbugs.
+  * SIGUSR1 toggles debug output on running daemon.
+  * Optional checksumming is now controlled by config file option checksum
+
+ -- Mark Hindley <mark@hindley.org.uk>  Thu, 13 Sep 2007 20:32:50 +0100
+
+apt-cacher (1.2) unstable; urgency=low
+
+  * The new version of apt-cacher allows fetching of the pdiff files, used by
+    APT from Experimental archive. However, the support is limited. The complete
+    index files need to be fetched for administrative tasks like the daily
+    cleanup operation. Therefore, the local administator can disable the cleanup
+    job in apt-cacher.conf or save some bandwith by running it only weekly.
+    This can be done by moving the file /etc/cron.daily/apt-cacher to
+    /etc/cron.weekly/.
+
+ -- Eduard Bloch <blade@debian.org>  Fri, 06 Jan 2006 00:50:52 +0100          
+
+apt-cacher (1.0.0) unstable; urgency=low
+
+  * A new generation of apt-cacher has seen the daylight.
+    It has been rewritten in many parts to solve the perfomance problems.
+    The new version provides:
+
+    - compatibility to the old cache format
+    - less dependencies - no need for a webserver installation (or full-blown
+      Python installation including twisted)
+    - better performance on low level systems - avoiding external program
+      invocations, everything is done with Perl's on-board infrastructure,
+      using less memory and fewer processes
+    - better data troughput: supporting HTTP/1.1, doing connection
+      caching and using the Keep-Alive feature - all this finally avoids
+      redundant traffic and dozens of CGI invocations for simple APT operation
+    - better security for proxy auth users
+      
+  * All users are advised to change the configuration to use apt-cacher in
+    server mode. The CGI URLs do still work, but CGI mode is considered
+    deprecated.
+  
+ -- Eduard Bloch <blade@debian.org>  Wed, 20 Jul 2005 23:58:25 +0200
+
+apt-cacher (0.9.1) unstable; urgency=medium
+
+  * Support for the old format is gone (see below). The existing cached 
+    data (packages) can be converted with the command:
+    /usr/share/apt-cacher/apt-cacher-format-transition.pl /var/cache/apt-cacher
+
+  * Version 0.9 of apt-cacher should be a major step towards to stability and
+    useability of this program. Among the many bug fixes and improvements, the
+    most visible changes are:
+
+   - no longer storing DEB file contents together with HTTP cruft in the same
+     files. This now makes possible to reuse the cached .deb files easily.
+   - support for modern technologies: IPv6, bzip2 compression
+   - support for alternative HTTP daemons (though not transparent for clients,
+     requires some tuning because of bugs in APT and CGI standard limitations)
+   - using time stamps, avoiding desynchronisation of the meta files in cache
+     and on the mirror
+   - optional checksumming and verification of processed package files
+   - apt-precache.pl script to prefetch possible package updates or fetch
+     series of packages choosen by priority
+
+ -- Eduard Bloch <blade@debian.org>  Mon, 16 May 2005 12:29:12 +0200
+

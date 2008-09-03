@@ -1,0 +1,16 @@
+#! /bin/sh
+
+set -e
+
+case "$1" in
+    purge)
+		rm -rf /var/cache/apt-cacher /var/log/apt-cacher
+	;;
+	
+esac
+
+#DEBHELPER#
+
+exit 0
+
+

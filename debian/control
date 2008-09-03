@@ -1,0 +1,38 @@
+Source: apt-cacher
+Section: net
+Priority: optional
+Maintainer: Mark Hindley <mark@hindley.org.uk>
+Uploaders: Eduard Bloch <blade@debian.org>, Jonathan Oxer <jon@debian.org>
+Build-Depends: debhelper (>> 4.0.0)
+Build-Depends-Indep: perl (>=5.6.0-16)
+Standards-Version: 3.7.3
+
+Package: apt-cacher
+Architecture: all
+Depends: ${perl:Depends}, bzip2, libwww-curl-perl (>=3.12), libwww-perl, libdigest-sha1-perl, ed
+Recommends: libberkeleydb-perl
+Suggests: libio-socket-inet6-perl
+Description: Caching proxy for Debian package and source files
+ Apt-cacher performs caching of .deb and source packages which have been
+ downloaded by local users. It is most useful for local area networks with slow
+ internet uplink.
+ .
+ When a package is requested, the cache checks whether it already has the
+ requested version, in which case it sends the package to the user immediately.
+ If not, it downloads the package while streaming it to the user at the same
+ time. A local copy is then kept for use by other users.
+ .
+ Apt-cacher has been optimized for best utilization of network bandwidth and
+ efficiency even on slow low-memory servers. Multiple ways of installation are
+ possible: as a stand-alone HTTP proxy, as a daemon executed by inetd or as a
+ CGI program. Client machines are configured by changing APT's proxy
+ configuration or modification of access URLs in sources.list.
+ .
+ The package includes utilities to clean the cache (removing obsolete package
+ files), generate usage reports and import existing package files.  Experimental
+ features include a simple package checksum verification framework, optional
+ IPv6 support and pre-fetching of new packages (upgrade candidates).
+ .
+ Apt-cacher can be used as a replacement for apt-proxy, with no need to modify
+ client's /etc/apt/sources.list files (and even reusing its config and cached
+ data), or as an alternative to approx.

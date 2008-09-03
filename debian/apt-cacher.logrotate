@@ -1,0 +1,14 @@
+/var/log/apt-cacher/*.log {
+        monthly
+        missingok
+        rotate 12
+        compress
+        delaycompress
+        notifempty
+        create
+	postrotate
+		if [ -f /var/run/apt-cacher.pid ]; then
+	                invoke-rc.d --quiet apt-cacher restart > /dev/null 2>&1
+		fi
+	endscript
+}
