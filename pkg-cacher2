@@ -57,7 +57,7 @@ use lib '/usr/share/pkg-cacher/';
 #use Cwd;
 #use lib dirname(Cwd::abs_path $0);
 
-use Fcntl qw(:DEFAULT :flock);
+use Fcntl qw(:DEFAULT :flock SEEK_SET SEEK_CUR SEEK_END);
 
 use WWW::Curl::Easy;
 use IO::Socket::INET;
@@ -350,8 +350,8 @@ sub handle_connection {
 	my $ifmosince;# to be undef by new GET lines
 	my $send_head_only=0; # to be undef by new GET lines
 	my $tolerated_empty_lines=1;
-	my $rangereq;
 	my $hostreq;
+	my $rangereq="";
 	my $httpver;
 	my $force_download=0;
 	my $cache_status;
@@ -366,9 +366,7 @@ sub handle_connection {
 	    debug_message("got: $_");
 
 	    if (!defined($_)) {
-		exit(0) if $mode eq 'cgi';
-		&sendrsp(400, 'No Request Recieved');
-		exit(4);
+		exit(0);
 	    }
 
 	    if(/^$/) {
@@ -416,8 +414,8 @@ sub handle_connection {
 		elsif(/^Connection: .*TE/) {
 		    $concloseflag=1;
 		}
-		elsif(/^Range/i) {
-		    $rangereq=1;
+		elsif(/^Range:\s+(.*)/i) {
+		    $rangereq=$1;
 		}
 		elsif(/^If-Modified-Since:\s+(.*)/i) {
 		    $ifmosince=$1;
@@ -646,11 +644,11 @@ sub handle_connection {
 	# handle if-modified-since in a better way (check the equality of
 	# the time stamps). Do only if download not forced above.
 
-	if($ifmosince && $cache_status ne 'EXPIRED') {
-	    $ifmosince=~s/\n|\r//g;
+	if ($ifmosince && $cache_status ne 'EXPIRED') {
+	    $ifmosince =~ s/\n|\r//g;
 
 	    my $oldhead;
-	    if(open(my $testfile, $cached_head)) {
+	    if (open(my $testfile, $cached_head)) {
 	      LINE: for(<$testfile>){
 		    if(/^.*Last-Modified:\s(.*)(?:\r|\n)/) {
 			$oldhead = $1;
@@ -740,7 +738,7 @@ sub handle_connection {
 	}
 
 	debug_message('checks done, can return now');
-	my $ret = &return_file ($send_head_only ? undef : \$fromfile);
+	my $ret = &return_file ($send_head_only ? undef : \$fromfile, $rangereq);
 	if ($ret==2) { # retry code
 	    debug_message('return_file requested retry');
 	    goto dl_check;
@@ -752,187 +750,308 @@ sub handle_connection {
     }
 }
 
+sub parse_range {
+    my @result;
+    my ($input_ranges) = $_[0] =~ /^bytes=([\d,-]+)$/i;
+
+    debug_message("parse_range: input_ranges = $input_ranges");
+
+    if ($input_ranges) {
+	HANDLE_RANGE: foreach my $range (split /,/,$input_ranges) {
+	    my ($start, $end, $single) = $range =~ /^(\d+)?-(\d+)?$|^(\d+)$/;
+
+	    debug_message("parse_range: start = $start, end = $end, single = $single");
+
+	    if ($single) {
+		$start = $end = $single;
+	    }
+
+	    if ($start && $end && $start > $end) {
+		@result = [ 0, undef ];
+		last HANDLE_RANGE;
+	    }
+	    push @result, [ $start, $end ];
+	}
+    } else {
+    	@result = [ 0, undef ];
+    }
+    return @result;
+}
+
 sub return_file {
     # At this point the file is open, and it's either complete or somebody
     # is fetching its contents
 
-    my $fromfile=${$_[0]};
-    my $header_printed=0;
-
-    &data_init;
+    my $fromfile = ${$_[0]};
+    my $range = $_[1];
+    my $header_printed = 0;
 
     my $abort_time = get_abort_time();
     my $buf;
 
-    my $geslen=0;
-    my $curlen=0;
-    my $explen;
+    my @range_list;
+    my $total_length;
 
+    my $status_header;
+    my $fixed_headers;
     my $complete_found;
 
-    # needs to print the header first
-    CHUNK: while (1) {
+    if ($range) {
+	@range_list = parse_range($range);
+    } else {
+	@range_list = [ 0, undef ]
+    }
 
-	#debug_message('Send loop iteration:');
+    # add this reader to the notification list before doing anything
+    # useful to the client
+    if (! -f $complete_file) { # there is no point if the package is already downloaded
+	open(my $nf, ">>$notify_file") || die $!;
+	flock($nf, LOCK_EX);
+	print $nf "$$\n";
+	flock($nf, LOCK_UN);
+	close($nf);
+    }
 
+    #
+    # Wait for the header and then read it
+    # 
+    WAIT_FOR_HEADER: while (1) {
 	if (time() > $abort_time) {
-	    info_message("return_file $cached_file aborted by timeout at $curlen of $explen bytes");
+	    info_message("return_file $cached_file aborted waiting for header");
 	    &sendrsp(504, 'Request Timeout') if !$header_printed;
 	    exit(4);
 	}
 
-	if(!$header_printed) {
-
-	    # add this reader to the notification list before printing anything
-	    # useful to the client
-	    if(! -f $complete_file) { # there is no point if the package is already downloaded
-		open(my $nf, ">>$notify_file") || die $!;
-		flock($nf, LOCK_EX);
-		print $nf "$$\n";
-		flock($nf, LOCK_UN);
-		close($nf);
+	if (-s $cached_head) {
+	    # header file seen, protect the reading
+	    &set_global_lock(': reading the header file');
+	    if (! -f $cached_head) {
+		# file removed while waiting for lock - download failure?!
+		# start over, maybe spawning an own fetcher
+		&release_global_lock;
+		return(2); # retry
 	    }
 
-	    if(-s $cached_head) {
-		# header file seen, protect the reading
-		&set_global_lock(': reading the header file');
-		if(! -f $cached_head) {
-		    # file removed while waiting for lock - download failure?!
-		    # start over, maybe spawning an own fetcher
-		    &release_global_lock;
-		    return(2); # retry
+	    open(my $in, $cached_head) || die $!;
+
+	    $status_header = <$in>; # read exactly one status line
+
+	    # keep only interesting parts
+	    $fixed_headers="";
+	    for (<$in>) {
+		if (/^Last-Modified|Content|Accept|ETag|Age/) {
+		    if (/^Content-Length:\ *(\d+)/) {
+			$total_length = $1;
+		    } else {
+			$fixed_headers .= $_;
+		    }
 		}
+	    }
 
-		open(my $in, $cached_head) || die $!;
-		my $code=200;
-		my $msg='';
-		my $headstring='';
+	    close($in);
+	    &release_global_lock;
 
-		$headstring=<$in>; # read exactly one status line
+	    last WAIT_FOR_HEADER;
+	}
+	sleep(1);
+    }
 
-		($code, $msg) = ($headstring=~/^HTTP\S+\s+(\d+)\s(.*)/);
-		# alternative for critical errors
-		if(!defined($code)) {
-		    ($code, $msg) = ($headstring=~/^(5\d\d)\s(.*)/);
-		}
+    my $code;
+    my $msg;
 
-		if(!defined($code)) {
-		    info_message("Faulty header file detected: $cached_head, first line was: $headstring");
-		    unlink $cached_head;
-		    &sendrsp(500, 'Internal Server Error');
-		    exit(3);
-		}
+    ($code, $msg) = ($status_header =~ /^HTTP\S+\s+(\d+)\s(.*)/);
 
+    # alternative for critical errors
+    if (!defined($code)) {
+	($code, $msg) = ($status_header =~ /^(5\d\d)\s(.*)/);
+    }
+
+    if (!defined($code)) {
+	info_message("Faulty header file detected: $cached_head, first line was: $status_header");
+	unlink $cached_head;
+	&sendrsp(500, 'Internal Server Error');
+	exit(3);
+    }
+
+    # in CGI mode, use alternative status line. Don't print one
+    # for normal data output (apache does not like that) but on
+    # abnormal codes, and then exit immediately
+    if ($mode eq 'cgi' && $code != 200) {
+	# don't print the head line but a Status on errors instead
+	print $con "Status: $code $msg\n\n";
+	exit(1);
+    }
+
+    # keep alive or not?
+    # If error, force close
+    if ($code != 200) {
+	debug_message("Got $code error. Going to close connection.");
+
+	$status_header .= "Connection: Close\r\n";
+	print $con $status_header."\r\n";
+	# Stop after sending the header with errors
+	return;
+    }
+
+    # Otherwise follow the client
+    $fixed_headers .= 'Connection: '.($concloseflag ? 'Close' : 'Keep-Alive')."\r\n";
+
+    if (!$fromfile) {
+	$status_header .= $fixed_headers;
+	print $con $status_header."\r\n";
+	# pure HEAD request, we are done
+	return;
+    }
+
+    #
+    # Process range list
+    # 	Fill in start for range relative to the end.
+    # 	Verify that at least one range overlaps the file.
+    # 
+    my $no_valid_ranges = 1;
+
+    foreach my $range_entry (@range_list) {
+    	my $begin = $range_entry->[0];
+	my $end = $range_entry->[1];
+    	if ($begin == undef) {
+	    # last n bytes of file
+	    $begin = $total_length - $end;
+	    if ($begin < 0) {
+	    	$begin = 0;
+	    }
+	    $end = undef;
+	    $no_valid_ranges = 0;
+	} elsif ($begin < $total_length) {
+	    $no_valid_ranges = 0;
+	}
+    }
+
+    if ($no_valid_ranges) {
+	$status_header = "HTTP/1.1 416 Requested Range Not Satisfiable\r\n";
+	$status_header .= "Connection: Close\r\n";
+	print $con $status_header."\r\n";
+	return;
+    }
+
+    debug_message("ready to send contents of $cached_file");
+
+    RANGE_ENTRY: foreach my $range_entry (@range_list) {
+
+    	my $begin = $range_entry->[0];
+	my $end = $range_entry->[1];
+
+	debug_message("begin = $begin, end = $end");
+
+	next RANGE_ENTRY if ($begin >= $total_length);
+	    
+	# needs to print the header first
+	$header_printed = 0;
+	my $range_start = $begin;
+	my $range_length;
+
+	if ($end == undef || $end > $total_length) {
+	    $range_length = $total_length - $range_start;
+	} else {
+	    $range_length = $end - $begin + 1;
+	}
+
+	debug_message("range_start = $range_start, range_length = $range_length");
+
+	CHUNK: while (1) {
+
+	    if (time() > $abort_time) {
+		info_message("return_file $cached_file aborted by timeout at $range_start of $total_length bytes");
+		&sendrsp(504, 'Request Timeout') if !$header_printed;
+		exit(4);
+	    }
+
+	    if (!$header_printed) {
 		# in CGI mode, use alternative status line. Don't print one
 		# for normal data output (apache does not like that) but on
-		# anormal codes, and then exit immediately
-		if($mode eq 'cgi') {
-		    # don't print the head line but a Status on errors instead
-		    $headstring=~s/^HTTP\S+/Status:/;
-		    if($code == 200) {
-			$headstring=''; # kick headline by default
-		    }
-		    else {
-			print $con $headstring."\n\n";
-			exit(1);
-		    }
+		# abnormal codes, and then exit immediately
+		if ($mode eq 'cgi') {
 		}
 
-		# keep alive or not?
-		# If error, force close
-		if ($code!=200 && !$concloseflag) {
-		  debug_message("Got $code error. Going to close connection.");
-		  $concloseflag=1;
+		my $headers = '';
+
+		if ($begin != 0 || $end != undef) {
+		    $headers .= "HTTP/1.1 206 Partial Content\r\n";
+		    $headers .= 'Content-Range: bytes '.$range_start.'-'.($range_start+$range_length-1).'/'.$total_length."\r\n";
+		} else {
+		    $headers .= $status_header;
 		}
-		# Otherwise follow the client
-		$headstring .= 'Connection: '.($concloseflag ? 'Close' : 'Keep-Alive')."\r\n";
 
-		# keep only parts interesting for apt
-		if($code==200) {
-		    for(<$in>) {
-			if(/^Last-Modified|Content|Accept|ETag|Age/) {
-			    $headstring.=$_;
-			    if(/^Content-Length:\ *(\d+)/) {
-				$explen=$1;
-			    }
-			}
-		    }
-		}
-		close($in);
-		&release_global_lock;
+		$headers .= 'Content-Length: '.$range_length."\r\n";
 
-		print $con $headstring."\r\n";
+		$headers .= $fixed_headers;
 
-		$header_printed=1;
-		debug_message("Header sent: $headstring");
+		print $con $headers."\r\n";
 
-		# Stop after sending the header with errors
-		return if($code != 200);
-
+		$header_printed = 1;
+		debug_message("Header sent: $headers");
 	    }
-	    else {
+
+	    my $new_pos = sysseek($fromfile, $range_start, SEEK_SET);
+
+	    debug_message("new_pos = $new_pos");
+
+	    if ($new_pos != $range_start) {
+	    	# Still waiting for this part of the file to download
+		sleep 1;
+		next CHUNK;
+	    }
+
+	    my $read_length = $range_length < 65536 ? $range_length : 65536;
+
+	    my $n = sysread($fromfile, $buf, $read_length);
+
+	    debug_message("read $n bytes");
+
+	    if (!defined($n)) {
+		debug_message('Error detected, closing connection');
+		exit(4); # Header already sent, can't notify error
+	    }
+
+	    if ($n == 0) {
+
+		if ($complete_found) {
+		    # complete file was found in the previous iteration
+		    # this is the loop exit condition
+		    #
+		    # final check on size
+#		    if ($total_length && $curlen != $total_length) {
+#			info_message("ALARM! $cached_file file size mismatch (found $curlen, expected $total_length). Renaming to $cached_file.corrupted.");
+#			unlink "$cached_file.corrupted";
+#			rename($cached_file, "$cached_file.corrupted");
+#			exit(5); # Header already sent, can't notify error
+#		    }
+		    last CHUNK;
+		}
+
+		if (-f $complete_file) {
+		    # do another iteration, may need to read remaining data
+		    debug_message('complete file found');
+		    $complete_found=1;
+		    next CHUNK;
+		}
+
+		# debug_message('waiting for new data');
+		# wait for fresh data
 		sleep(1);
 		next CHUNK;
+
+	    } else {
+		$range_length -= $n;
+		$range_start += $n;
+
+		#debug_message("write $n / $curlen bytes");
+		# send data and update watchdog
+		print $con $buf;
+		debug_message("wrote $n (sum: ".($range_start - $begin).' bytes)');
+		$abort_time = get_abort_time();
+
+		next RANGE_ENTRY if ($range_length == 0);
 	    }
-
-	    # pure HEAD request, we are done
-	    return unless ($fromfile);
-
-	    debug_message("ready to send contents of $cached_file");
-	}
-
-	my $n=0;
-	$n = sysread($fromfile, $buf, 65536);
-	debug_message("read $n bytes");
-
-	if(!defined($n)) {
-	    debug_message('Error detected, closing connection');
-	    exit(4); # Header already sent, can't notify error
-	}
-
-	if($n==0) {
-
-	    if($complete_found) {
-		# comlete file was found in the previous iteration
-		# this is the loop exit condition
-		#
-		# final check on size
-		if($explen && $curlen != $explen) {
-		    info_message("ALARM! $cached_file file size mismatch (found $curlen, expected $explen). Renaming to $cached_file.corrupted.");
-		    unlink "$cached_file.corrupted";
-		    rename($cached_file, "$cached_file.corrupted");
-		    exit(5); # Header already sent, can't notify error
-		}
-		last CHUNK;
-	    }
-
-	    if (-f $complete_file) {
-		# do another iteration, may need to read remaining data
-		debug_message('complete file found');
-		$complete_found=1;
-		next CHUNK;
-	    }
-
-	    # debug_message('waiting for new data');
-	    # wait for fresh data
-	    sleep(1);
-	    next CHUNK;
-
-	}
-	else {
-	    $curlen+=$n;
-	    if($explen && $curlen > $explen) {
-		info_message("ALARM! $cached_file file is larger than expected ($explen). Renaming to $cached_file.corrupted.");
-		unlink "$cached_file.corrupted";
-		rename($cached_file, "$cached_file.corrupted");
-		exit(5); # Header already sent, can't notify error
-	    }
-	    #debug_message("write $n / $curlen bytes");
-	    # send data and update watchdog
-	    print $con $buf;
-	    debug_message("wrote $n (sum: $curlen) bytes");
-	    $abort_time = get_abort_time();
-	    data_feed(\$buf);
 	}
     }
 }
@@ -1138,7 +1257,6 @@ sub body_callback {
 
     # debug_message("Body callback got ".length($chunk)." bytes for $handle\n");
     print $handle $chunk || return -1;
-    data_feed(\$chunk);
 
     return length($chunk); # OK
 }

@@ -367,37 +367,6 @@ sub is_index_file {
     return ($_[0] =~ /$index_files_regexp/);
 }
 
-######### HOOKS ###########
-#
-# arg: file to be scanned and added to DB
-sub import_sums {
-   return 1;
-}
-
-# purpose: ?create?, lock the DB file and establish DB connection
-sub db_init {
-   return 1;
-}
-
-# purpose: create hasher object
-sub data_init {
-   return 1;
-}
-
-# purpose: append data to be scanned
-sub data_feed {
-   return 1;
-}
-
-# args: filename only or filename and sum
-sub check_sum {
-   return 1;
-}
-
-# args: filename and sum
-sub store_sum {
-}
-
 #### common code for installation scripts ####
 sub remove_apache {
     foreach my $apache ("apache", "apache-ssl", "apache2") {
