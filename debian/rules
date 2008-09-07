@@ -62,19 +62,13 @@ install: build
 	install -m644 apache.conf debian/pkg-cacher/etc/pkg-cacher/apache.conf
 	install -m755 pkg-cacher.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher.pl
 	install -m755 pkg-cacher2 debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher
-	install -m755 apt-proxy-to-pkg-cacher debian/pkg-cacher/usr/share/pkg-cacher/
 	ln -sf   ../share/pkg-cacher/pkg-cacher debian/pkg-cacher/usr/sbin/pkg-cacher 
 	install -m755 pkg-cacher-report.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-report.pl
 	install -m755 pkg-cacher-cleanup.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-cleanup.pl
 	install -m755 pkg-cacher-precache.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-precache.pl
-	install -m755 pkg-cacher-format-transition.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-format-transition.pl
 	install -m755 pkg-cacher-import.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-import.pl
 	install -m755 pkg-cacher-lib.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-lib.pl
-	install -m755 pkg-cacher-lib-cs.pl debian/pkg-cacher/usr/share/pkg-cacher/pkg-cacher-lib-cs.pl
 	install -m755 pkg-cacher.cron.daily debian/pkg-cacher/etc/cron.daily/pkg-cacher
-	install -m755 install.pl debian/pkg-cacher/usr/share/pkg-cacher/install.pl
-	install -m755 remove.pl debian/pkg-cacher/usr/share/pkg-cacher/remove.pl
-	install -m755 upgrade.pl debian/pkg-cacher/usr/share/pkg-cacher/upgrade.pl
 	perl -pe 's/^my \$$version=.*/my \$$version="'$(shell dpkg-parsechangelog  | grep ^Version | cut -f2 -d\  )'";/' -i $(CURDIR)/debian/pkg-cacher/usr/share/pkg-cacher/*
 
 # Build architecture-independent files here.

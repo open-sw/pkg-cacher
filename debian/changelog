@@ -1,7 +1,15 @@
-pkg-cacher (1.0.0_ unstable; urgency=low
+pkg-cacher (0.9.1) unstable; urgency=low
+
+  * Updated Debian packaging.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Sat, 06 Sep 2008 17:21:41 -0700
+
+pkg-cacher (0.9.0) unstable; urgency=low
 
   * Renamed to pkg-cacher.
   * Modified to support RedHat.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Sat, 06 Sep 2008 15:23:23 -0700
 
 apt-cacher (1.6.4) unstable; urgency=low
 

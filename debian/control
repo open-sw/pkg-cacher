@@ -1,16 +1,15 @@
 Source: pkg-cacher
 Section: net
 Priority: optional
-Maintainer: Mark Hindley <mark@hindley.org.uk>
-Uploaders: Eduard Bloch <blade@debian.org>, Jonathan Oxer <jon@debian.org>
+Maintainer: Robert Nelson <robertn@the-nelsons.org>
 Build-Depends: debhelper (>> 4.0.0)
 Build-Depends-Indep: perl (>=5.6.0-16)
 Standards-Version: 3.7.3
 
 Package: pkg-cacher
 Architecture: all
-Depends: ${perl:Depends}, bzip2, libwww-curl-perl (>=3.12), libwww-perl, libdigest-sha1-perl, ed
-Recommends: libberkeleydb-perl
+#Depends: ${perl:Depends}, bzip2, libwww-curl-perl (>=3.12), libwww-perl, libdigest-sha1-perl, ed
+Depends: ${perl:Depends}, bzip2, libwww-curl-perl, libwww-perl, libdigest-sha1-perl, ed
 Suggests: libio-socket-inet6-perl
 Description: Caching proxy for Debian package and source files
  Pkg-cacher performs caching of .deb and source packages which have been

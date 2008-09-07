@@ -18,20 +18,8 @@ set -e
 
 
 case "$1" in
-    remove|deconfigure)
-		echo "Running pkg-cacher remove script"
-		/usr/share/pkg-cacher/remove.pl
+    upgrade|remove|deconfigure)
 	;;
-	
-    upgrade)
-		echo "Running pkg-cacher upgrade script"
-		/usr/share/pkg-cacher/upgrade.pl
-	# This was added to comply with the doc transition to FHS
-	# if [ -a -L /usr/doc/pkg-cacher ]; then
-	#       rm -f /usr/doc/pkg-cacher
-	# fi
-	;;
-
 	
     failed-upgrade)
         ;;

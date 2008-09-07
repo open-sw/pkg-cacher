@@ -26,35 +26,18 @@ set -e
 case "$1" in
     configure)
 
-	# Handle upgrade from checksumming.conf
-
-	CONFDIR=/etc/pkg-cacher
-	CONFFILE=$CONFDIR/pkg-cacher.conf
-
-	if [ -f $CONFDIR/checksumming.conf ]; then
-	    if grep -E -q "^[[:space:]]*require.+pkg-cacher-lib-cs.pl" $CONFDIR/checksumming.conf; then
-
-		echo "Importing checksum config from $CONFDIR/checksumming.conf"
-
-		if  grep -E -q "^[#[:space:]]*checksum=" $CONFFILE ; then
-		    TEMP_FILE=`mktemp -p /tmp`
-		    sed 's/^[#[:space:]]*checksum=.*$/checksum=1/' $CONFFILE > $TEMP_FILE
-		    mv $TEMP_FILE $CONFFILE
-		    chmod 0644 $CONFFILE
-		else
-		    echo "checksum=1" >> $CONFFILE
-		fi
-	    fi
-	    echo "Deleting obsolete file $CONFDIR/checksumming.conf"
-	    rm $CONFDIR/checksumming.conf
-	fi
-	
-	echo "Running pkg-cacher's install script..."
-	/usr/share/pkg-cacher/install.pl
+    	test -d /var/cache/pkg-cacher || {
+		mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
+		chown -R pkg-cacher:pkg-cacher /var/cache/pkg-cacher
+	}
+    	test -d /var/log/pkg-cacher || {
+		mkdir /var/log/pkg-cacher
+		touch /var/log/pkg-cacher/{access.log,error.log}
+		chown -R pkg-cacher:pkg-cacher /var/log/pkg-cacher
+	}
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
-
     ;;
 
     *)
@@ -69,5 +52,3 @@ esac
 #DEBHELPER#
 
 exit 0
-
-
