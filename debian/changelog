@@ -1,3 +1,9 @@
+pkg-cacher (0.9.2) unstable; urgency=low
+
+  * Updated path_map to add repo.opensource-sw.net
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Mon, 08 Sep 2008 19:55:44 -0700
+
 pkg-cacher (0.9.1) unstable; urgency=low
 
   * Updated Debian packaging.
