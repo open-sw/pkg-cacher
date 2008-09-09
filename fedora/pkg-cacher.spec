@@ -1,6 +1,6 @@
 Summary:  A caching tool for the apt-get and yum package management system.
 Name: pkg-cacher
-Version: 0.9.0
+Version: 0.9.2
 Release: 1
 License: GPL
 Group: Applications/System
