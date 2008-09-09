@@ -9,6 +9,7 @@ cd ..
 rm -f $PRODUCT-$VERSION
 ln -sf $DIR $PRODUCT-$VERSION
 
-tar -cjf $PRODUCT-$VERSION.tar.bz2 --exclude=.svn --exclude='*.swp' --dereference $PRODUCT-$VERSION
+tar -cjf ../$PRODUCT-$VERSION.tar.bz2 --exclude=.svn --exclude='*.swp' --dereference $PRODUCT-$VERSION
+tar -czf ../$PRODUCT-$VERSION.tar.gz --exclude=.svn --exclude='*.swp' --dereference $PRODUCT-$VERSION
 
 rm -f $PRODUCT-$VERSION
