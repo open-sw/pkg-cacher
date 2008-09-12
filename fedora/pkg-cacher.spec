@@ -1,7 +1,7 @@
 Summary:  A caching tool for the apt-get and yum package management system.
 Name: pkg-cacher
-Version: 0.9.2
-Release: 1
+Version: @@VERSION@@
+Release: 1%{dist}
 License: GPL
 Group: Applications/System
 Source: %{name}-%{version}.tar.bz2
@@ -36,7 +36,7 @@ install -m 755 -d $RPM_BUILD_ROOT/usr/share/pkg-cacher
 install -m 755 -d $RPM_BUILD_ROOT/var/log/pkg-cacher
 install -m 755 -d $RPM_BUILD_ROOT/var/cache/pkg-cacher
 install -m 755 pkg-cacher.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
-install -m 755 pkg-cacher2 $RPM_BUILD_ROOT/usr/share/pkg-cacher/pkg-cacher
+install -m 755 pkg-cacher $RPM_BUILD_ROOT/usr/share/pkg-cacher/pkg-cacher
 install -m 755 pkg-cacher-report.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
 install -m 755 pkg-cacher-cleanup.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
 install -m 755 pkg-cacher-precache.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
