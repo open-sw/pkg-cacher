@@ -14,12 +14,16 @@ clean:
 	dh_testroot
 	dh_clean
 
-install:
+build:
+
+install: build
 	dh_testdir -i
 	dh_testroot -i
 	dh_clean -i
 	dh_installdirs -i
+	make DESTDIR=debian/pkg-cacher install-config
 	make DESTDIR=debian/pkg-cacher install-files
+	make DESTDIR=debian/pkg-cacher install-link
 	perl -pe 's/^my \$$version=.*/my \$$version="'$(shell dpkg-parsechangelog  | grep ^Version | cut -f2 -d\  )'";/' -i $(CURDIR)/debian/pkg-cacher/usr/share/pkg-cacher/*
 	dh_installdocs -i
 	dh_installlogrotate -i
@@ -38,4 +42,4 @@ install:
 
 binary: install
 
-.PHONY: clean binary install
+.PHONY: clean binary install build
