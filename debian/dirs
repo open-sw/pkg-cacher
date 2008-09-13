@@ -1,3 +1,4 @@
+usr/sbin
 usr/share/pkg-cacher
 etc/pkg-cacher
 etc/cron.daily

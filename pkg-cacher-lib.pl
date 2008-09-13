@@ -337,31 +337,7 @@ sub barf {
 	die "--- $0: Fatal: $errs\n";
 }
 
-my $index_files_regexp =
-  '('
-  . join('|', ('Index',
-	       'Packages.gz',
-	       'Packages.bz2',
-	       'Release',
-	       'Release.gpg',
-	       'Sources.gz',
-	       'Sources.bz2',
-	       'Contents-.+\.gz',
-	       'pkglist.*\.bz2',
-	       'release$',
-	       'release\..*',
-	       'srclist.*\.bz2',
-	       'Translation-.+\.bz2',
-	       'filelists\.sqlite\.bz2',
-	       'filelists\.xml\.gz',
-	       'other\.sqlite\.bz2',
-	       'other\.xml\.gz',
-	       'primary\.sqlite\.bz2',
-	       'primary\.xml\.gz',
-	       'repomd\.xml'
-	      )
-	)
-  . ')$';
+my $index_files_regexp = '(?:'.read_patterns('index_files.regexp').')$';
 
 sub is_index_file {
     return ($_[0] =~ /$index_files_regexp/);

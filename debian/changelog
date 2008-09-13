@@ -1,8 +1,17 @@
+pkg-cacher (0.9.3) unstable; urgency=low
+
+  * Added support for HTTP Redirect.
+  * Made file patterns easily configurable.
+  * Added OpenSUSE patterns.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Fri, 12 Sep 2008 11:31:18 -0700
+
 pkg-cacher (0.9.2) unstable; urgency=low
 
   * Updated path_map to add repo.opensource-sw.net
+  * Add support for Range header
 
- -- Robert Nelson <robertn@the-nelsons.org>  Mon, 08 Sep 2008 19:55:44 -0700
+ -- Robert Nelson <robertn@the-nelsons.org>  Mon, 09 Sep 2008 16:12:44 -0700
 
 pkg-cacher (0.9.1) unstable; urgency=low
 

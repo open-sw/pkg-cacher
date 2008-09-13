@@ -72,11 +72,13 @@ use File::Path;
 require 'pkg-cacher-lib.pl';
 
 # Set some defaults
-my $version='0.1'; # this will be auto-replaced when the package is being built
+my $version="0.1";
 my $configfile_default = '/etc/pkg-cacher/pkg-cacher.conf';
 my $configfile = $configfile_default;
 
 my $mode; # cgi|inetd|undef
+
+my $static_files_regexp = '(?:'.read_patterns('static_files.regexp').')$';
 
 # Needs to be global for &setup_ownership
 our $cfg;
@@ -236,6 +238,22 @@ sub term_handler {
 	kill 15, $_;
     };
     exit(0);
+}
+
+sub read_patterns {
+    my $file = $_[0];
+    my @pattern;
+
+    if (open(my $fd, $file)) {
+        LINE: while (<$fd>) {
+            s/#.*$//;
+            s/[\s]+//;
+            next LINE if /^$/;
+            push(@pattern, $_);
+        }
+    }
+
+    return join('|', @pattern);
 }
 
 sub reload_config {
@@ -521,7 +539,7 @@ sub handle_connection {
 	}
     location_allowed:
 
-	if ($filename =~ /(?:\.deb|\.rpm|\.dsc|\.tar\.gz|\.diff\.gz|\.udeb|index\.db-.+\.gz\.jigdo|\.template)$/) {
+	if ($filename =~ /$static_files_regexp/) {
 	    # We must be fetching a .deb or a .rpm or some other recognised
 	    # file, so let's cache it.
 	    # Place the file in the cache with just its basename
@@ -543,7 +561,7 @@ sub handle_connection {
 	} else {
 	    # Maybe someone's trying to use us as a general purpose proxy / relay.
 	    # Let's stomp on that now.
-	    debug_message("Sorry, not allowed to fetch that type of file: $filename");
+	    info_message("Sorry, not allowed to fetch that type of file: $filename");
 	    &sendrsp(403, "Sorry, not allowed to fetch that type of file: $filename");
 	    exit(4);
 	}
@@ -815,6 +833,9 @@ sub return_file {
     #
     # Wait for the header and then read it
     # 
+    my $code;
+    my $msg;
+
     WAIT_FOR_HEADER: while (1) {
 	if (time() > $abort_time) {
 	    info_message("return_file $cached_file aborted waiting for header");
@@ -836,6 +857,22 @@ sub return_file {
 
 	    $status_header = <$in>; # read exactly one status line
 
+	    ($code, $msg) = ($status_header =~ /^HTTP\S+\s+(\d+)\s(.*)/);
+	    
+	    if ($code == 302) {
+	    	# We got a redirect, wait for the fetcher to process it.
+		info_message('return_file got redirect');
+                for (<$in>) {
+                    if (/^Location:\ *([\S]+)/) {
+                        info_message("New location: $1");
+                    }
+                }
+		close($in);
+		&release_global_lock;
+		sleep(2);
+		next WAIT_FOR_HEADER;
+	    }
+
 	    # keep only interesting parts
 	    $fixed_headers="";
 	    for (<$in>) {
@@ -855,11 +892,6 @@ sub return_file {
 	}
 	sleep(1);
     }
-
-    my $code;
-    my $msg;
-
-    ($code, $msg) = ($status_header =~ /^HTTP\S+\s+(\d+)\s(.*)/);
 
     # alternative for critical errors
     if (!defined($code)) {
@@ -1326,7 +1358,6 @@ sub libcurl {
     my $hostcand;
 
   RETRY_ACTION:
-    my @headers;
     my $response = new HTTP::Response;
 
     # make the virtual hosts real. The list is reduced which is not so smart,
@@ -1337,6 +1368,7 @@ sub libcurl {
 	$url=($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
     }
 
+  RETRY_REDIRECT:
     if(!$pkfdref) {
 	debug_message ('download agent: setting up for HEAD request');
 	$curl->setopt(CURLOPT_NOBODY,1);
@@ -1363,6 +1395,22 @@ sub libcurl {
     }
     $response->request($url);
 
+    if ($response->is_redirect()) {
+    	# It is a redirect
+	info_message('libcurl got redirect for '.$url);
+
+	$url = $response->header("Location");
+	info_message('Redirecting to '.$url);
+	$response = new HTTP::Response;
+	if($pkfdref) {
+	    truncate($$pkfdref, 0);
+	    sysseek($$pkfdref, 0, 0);
+	}
+	unlink($complete_file);
+	unlink($cached_head);
+	goto RETRY_REDIRECT;
+    }
+
     if($do_hopping) {
 	# if okay or the last candidate fails, put it back into the list
 	if($response->is_success || ! @{$pathmap{$vhost}} ) {
@@ -1370,11 +1418,14 @@ sub libcurl {
 	}
 	else {
 	    # truncate cached_file to remove previous HTTP error
-	    truncate($$pkfdref, 0);
-	    sysseek($$pkfdref, 0, 0);
+	    if ($pkfdref) {
+		truncate($$pkfdref, 0);
+		sysseek($$pkfdref, 0, 0);
+	    }
 	    goto RETRY_ACTION;
 	}
     }
+
     return \$response;
 }
 

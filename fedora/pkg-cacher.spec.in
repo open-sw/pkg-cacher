@@ -19,32 +19,16 @@ This requires the apache web server version 2 to be installed (www.apache.org)
 %setup -q
 
 %install
-install -m 755 -d $RPM_BUILD_ROOT/usr/sbin
-ln -sf   ../share/pkg-cacher/pkg-cacher $RPM_BUILD_ROOT/usr/sbin/pkg-cacher 
-install -m 755 -d $RPM_BUILD_ROOT/etc/pkg-cacher
-install -m 644 pkg-cacher.conf $RPM_BUILD_ROOT/etc/pkg-cacher/pkg-cacher.conf
-install -m 644 apache.conf $RPM_BUILD_ROOT/etc/pkg-cacher/
-install -m 755 -d $RPM_BUILD_ROOT/etc/cron.daily
-install -m 755 pkg-cacher.cron.daily $RPM_BUILD_ROOT/etc/cron.daily/pkg-cacher
-install -m 755 -d $RPM_BUILD_ROOT/etc/sysconfig
-install -m 755 fedora/pkg-cacher.sysconfig $RPM_BUILD_ROOT/etc/sysconfig/pkg-cacher
-install -m 755 -d $RPM_BUILD_ROOT/etc/init.d
-install -m 755 fedora/pkg-cacher.init $RPM_BUILD_ROOT/etc/init.d/pkg-cacher
-install -m 755 -d $RPM_BUILD_ROOT/etc/logrotate.d
-install -m 755 pkg-cacher.logrotate $RPM_BUILD_ROOT/etc/logrotate.d/pkg-cacher
-install -m 755 -d $RPM_BUILD_ROOT/usr/share/pkg-cacher
-install -m 755 -d $RPM_BUILD_ROOT/var/log/pkg-cacher
-install -m 755 -d $RPM_BUILD_ROOT/var/cache/pkg-cacher
-install -m 755 pkg-cacher.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
-install -m 755 pkg-cacher $RPM_BUILD_ROOT/usr/share/pkg-cacher/pkg-cacher
-install -m 755 pkg-cacher-report.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
-install -m 755 pkg-cacher-cleanup.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
-install -m 755 pkg-cacher-precache.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
-install -m 755 pkg-cacher-import.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
-install -m 755 pkg-cacher-lib.pl $RPM_BUILD_ROOT/usr/share/pkg-cacher/
+make DESTDIR=$RPM_BUILD_ROOT install-clean
+make DESTDIR=$RPM_BUILD_ROOT install-dirs
+make DESTDIR=$RPM_BUILD_ROOT install-files
 perl -pe 's/^my \$version=.*/my \$version="'%{version}-%{release}'";/' -i $RPM_BUILD_ROOT/usr/share/pkg-cacher/*
-install -m 755 -d $RPM_BUILD_ROOT/usr/share/man/man1
-install -m 644 debian/pkg-cacher.1 $RPM_BUILD_ROOT/usr/share/man/man1/pkg-cacher.1
+make DESTDIR=$RPM_BUILD_ROOT install-config
+make DESTDIR=$RPM_BUILD_ROOT install-logrotate
+make DESTDIR=$RPM_BUILD_ROOT install-init
+make DESTDIR=$RPM_BUILD_ROOT install-cron
+make DESTDIR=$RPM_BUILD_ROOT install-man
+make DESTDIR=$RPM_BUILD_ROOT install-link
 
 %files
 %defattr(-,root,root)
@@ -75,5 +59,21 @@ service pkg-cacher start
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Mon Sep  1 2008 Robert Nelson ( robertn@the-nelsons.org )
+* Fri Sep 12 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.3
+  - Add support for HTTP Redirect
+  - Made file patterns easily configurable.
+  - Added OpenSUSE patterns.
+
+* Mon Sep  9 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.2
+  - Updated path_map to add repo.opensource-sw.net
+  - Add support for Range header
+
+* Sat Sep  6 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.1
+  - Fixed Debian packaging
+
+* Mon Sep  2 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.0
   - Created from version 1.6.4 of apt-cacher.
+  - Renamed to pkg-cacher.
+  - Modified to support RedHat.
+  - Modified to handle files with the same name but different content.
+  - Removed Debian specific checksum code.

@@ -1,0 +1,19 @@
+# Debian files
+\.deb
+\.udeb
+\.dsc
+\.diff\.gz
+# Redhat files
+\.rpm
+RPM-GPG-KEY.*
+# SuSE files
+deltainfo-.+\.xml
+# These are queried by zypper but don't exist on the archive
+#	index\.db-.+\.gz\.jigdo
+patch-.*\.xml
+updateinfo-.+\.xml
+# These are queried by zypper but don't exist on the archive
+#	\.template
+# Common files
+\.tar\.bz2
+\.tar\.gz
