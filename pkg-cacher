@@ -1,48 +1,14 @@
 #!/usr/bin/perl
+# vim: ts=4 sw=4 ai si
 
 =head1 NAME
 
- pkg-cacher2 - WWW proxy optimized for use with APT
+ pkg-cacher - WWW proxy optimized for use with Linux Distribution Repositories
 
  Copyright (C) 2005 Eduard Bloch <blade@debian.org>
  Copyright (C) 2007 Mark Hindley <mark@hindley.org.uk>
+ Copyright (C) 2008 Robert Nelson <robertn@the-nelsons.org>
  Distributed under the terms of the GNU Public Licence (GPL).
-
-=head1 SYNOPSIS
-
- ./setup.pl /home/me/cache
- edit /etc/apt/sources.list (use sources like deb http://proxy:3142/archiveserver/debian ...)
- apt-get update
- apt-get -u upgrade
-
-=head1 DESCRIPTION
-
-If you have two or more Debian GNU/Linux machines on a fast local
-network and you wish to upgrade packages from the Internet, you
-don't want to download every package several times.
-
-pkg-cacher2 is a tiny HTTP proxy that keeps a cache on disk of Debian
-binary/source packages and meta files which have been received from Debian
-distribution servers on the Internet. When an apt-get client issues
-a request for a file to pkg-cacher2, if the file is already on disk
-it is served to the client immediately, otherwise it is fetched from the
-Internet and served to the client while a copy is being stored on the disk.
-This means that several Debian machines can be upgraded but each package needs
-to be downloaded only once.
-
-pkg-cacher2 is a rewrite of the original pkg-cacher.pl CGI script, keeping
-compatibility in mind. The cached data can be shared by the both
-implementations, while pkg-cacher2 providers better performance and less server
-load.
-
-=head1 INSTALLATION
-
-Assuming your cache server is called B<www.myserver.com>
-and your cache directory is called B</home/me/cache>, then:
-
-1. Edit pkg-cacher.conf to customize your settings
-
-2. Run pkg-cacher2
 
 =cut
 # ----------------------------------------------------------------------------
@@ -51,11 +17,6 @@ use strict;
 use warnings;
 no warnings 'uninitialized';
 use lib '/usr/share/pkg-cacher/';
-
-## Just for testing!
-#use File::Basename;
-#use Cwd;
-#use lib dirname(Cwd::abs_path $0);
 
 use Fcntl qw(:DEFAULT :flock SEEK_SET SEEK_CUR SEEK_END);
 
@@ -112,48 +73,40 @@ sub get_abort_time ();
 # Subroutines
 
 sub setup {
-    my $pidfile;
-    my $chroot;
-    my $retnum;
-    my $do_fork_away;
+	my $pidfile;
+	my $chroot;
+	my $retnum;
+	my $do_fork_away;
 
-    my @extraconfig;
+	my @extraconfig;
 
-    if($ENV{CGI_MODE}) {
-	# yahoo, back to the roots, CGI mode
-	$mode='cgi';
-    }
-    else {
-	local @ARGV = @ARGV; # Use a copy so @ARGV not destroyed
-	while(scalar (@ARGV)) {
+	if ($ENV{CGI_MODE}) {
+		# yahoo, back to the roots, CGI mode
+		$mode='cgi';
+	} else {
+		local @ARGV = @ARGV; # Use a copy so @ARGV not destroyed
+		while (scalar (@ARGV)) {
 
-	    my $arg=shift(@ARGV);
+			my $arg=shift(@ARGV);
 
-	    if($arg eq '-c') {
-		$configfile=shift(@ARGV);
-		die "$configfile unreadable" if ! -r $configfile;
-	    }
-	    elsif($arg eq '-r') {
-		$chroot=shift(@ARGV);
-		die "No such directory: $chroot\n" if ! -d $chroot;
-	    }
-	    elsif($arg eq '-R') {
-		$retnum=shift(@ARGV);
-	    }
-	    elsif($arg eq '-i') {
-		$mode='inetd';
-	    }
-	    elsif($arg eq '-d') {
-		$do_fork_away=1;
-	    }
-	    elsif($arg eq '-p') {
-		$pidfile=shift(@ARGV);
-	    }
-	    elsif($arg=~/(\S+)=(\S+)/) {
-		push(@extraconfig, $1, $2);
-	    }
-	    elsif($arg eq '-h' || $arg eq '--help') {
-		print <<EOM;
+			if ($arg eq '-c') {
+				$configfile=shift(@ARGV);
+				die "$configfile unreadable" if ! -r $configfile;
+			} elsif ($arg eq '-r') {
+				$chroot=shift(@ARGV);
+				die "No such directory: $chroot\n" if ! -d $chroot;
+			} elsif ($arg eq '-R') {
+				$retnum=shift(@ARGV);
+			} elsif ($arg eq '-i') {
+				$mode='inetd';
+			} elsif ($arg eq '-d') {
+				$do_fork_away=1;
+			} elsif ($arg eq '-p') {
+				$pidfile=shift(@ARGV);
+			} elsif ($arg=~/(\S+)=(\S+)/) {
+				push(@extraconfig, $1, $2);
+			} elsif ($arg eq '-h' || $arg eq '--help') {
+				print <<EOM;
 USAGE: $0 <options> <override(s)>
 Options:
 
@@ -173,938 +126,885 @@ Advanced options (root only):
 Overrides:     override config variables (see config file), eg. daemon_port=9999
 
 EOM
-		exit(0);
-	    }
-	    else {
-		die "Unknown parameter $arg\n";
-	    }
+				exit(0);
+			} else {
+				die "Unknown parameter $arg\n";
+			}
+		}
 	}
-    }
 
-    eval {
-	$cfg = read_config($configfile);
-    };
+	eval {
+		$cfg = read_config($configfile);
+	};
 
-    # not sure what to do if we can't read the config file...
-    die "Could not read config file: $@" if $@;
+	# not sure what to do if we can't read the config file...
+	die "Could not read config file: $@" if $@;
 
-    define_global_lockfile("$cfg->{cache_dir}/exlock");
+	define_global_lockfile("$cfg->{cache_dir}/exlock");
 
-    # Now set some things from the command line
-    $cfg->{pidfile} = $pidfile if $pidfile;
-    $cfg->{fork} = $do_fork_away if $do_fork_away;
-    $cfg->{retry} = $retnum if $retnum;
-    $cfg->{chroot} = $chroot if $chroot;
+	# Now set some things from the command line
+	$cfg->{pidfile} = $pidfile if $pidfile;
+	$cfg->{fork} = $do_fork_away if $do_fork_away;
+	$cfg->{retry} = $retnum if $retnum;
+	$cfg->{chroot} = $chroot if $chroot;
 
-    # override config values with the user-specified parameters
-    while(@extraconfig) {
-	my $k=shift(@extraconfig);
-	my $v=shift(@extraconfig);
-	$cfg->{$k}=$v;
-    }
-
-    my $uid = $cfg->{user}=~/^\d+$/ ? $cfg->{user} : getpwnam($cfg->{group});
-    my $gid = $cfg->{group}=~/^\d+$/ ? $cfg->{group} : getgrnam($cfg->{group});
-
-    if($cfg->{path_map}) {
-	for(split(/\s*[,;]\s*/, $cfg->{path_map})) {
-	    my @tmp = split(/\s+/, $_);
-	    # must have at least one path and target
-	    next if ($#tmp < 1);
-	    my $key=shift(@tmp);
-	    $pathmap{$key}=[@tmp];
+	# override config values with the user-specified parameters
+	while (@extraconfig) {
+		my $k=shift(@extraconfig);
+		my $v=shift(@extraconfig);
+		$cfg->{$k}=$v;
 	}
-    }
 
-    # Ensure config is sane and filesystem is present and readable
-    &check_install;
-    # Die if it still failed
-    die "$0: No $cfg->{cache_dir} directory!\n" if (!-d "$cfg->{cache_dir}");
+	my $uid = $cfg->{user}=~/^\d+$/ ? $cfg->{user} : getpwnam($cfg->{group});
+	my $gid = $cfg->{group}=~/^\d+$/ ? $cfg->{group} : getgrnam($cfg->{group});
+
+	if ($cfg->{path_map}) {
+		for (split(/\s*[,;]\s*/, $cfg->{path_map})) {
+			my @tmp = split(/\s+/, $_);
+			# must have at least one path and target
+			next if ($#tmp < 1);
+			my $key=shift(@tmp);
+			$pathmap{$key}=[@tmp];
+		}
+	}
+
+	# Ensure config is sane and filesystem is present and readable
+	&check_install;
+	# Die if it still failed
+	die "$0: No $cfg->{cache_dir} directory!\n" if (!-d "$cfg->{cache_dir}");
 }
 
 sub term_handler {
-    $terminating=1;
+	$terminating=1;
 
-    # close all connections or shutdown the server if parent and kill
-    debug_message('received SIGTERM, terminating');
-    $con->close if defined($con);
+	# close all connections or shutdown the server if parent and kill
+	debug_message('received SIGTERM, terminating');
+	$con->close if defined($con);
 
-    if($server_pid && $server_pid == $$) {
-	for (@daemons) {$_->shutdown(2)};
-    }
+	if ($server_pid && $server_pid == $$) {
+		for (@daemons) {$_->shutdown(2)};
+	}
 
-    for(@childPids) {
-	&debug_message("killing subprocess: $_");
-	kill 15, $_;
-    };
-    exit(0);
+	for(@childPids) {
+		&debug_message("killing subprocess: $_");
+		kill 15, $_;
+	};
+	exit(0);
 }
 
 sub read_patterns {
-    my $file = $_[0];
-    my @pattern;
+	my $file = $_[0];
+	my @pattern;
 
-    if (open(my $fd, $file)) {
-        LINE: while (<$fd>) {
-            s/#.*$//;
-            s/[\s]+//;
-            next LINE if /^$/;
-            push(@pattern, $_);
-        }
-    }
+	if (open(my $fd, $file)) {
+		LINE: while (<$fd>) {
+			s/#.*$//;
+			s/[\s]+//;
+			next LINE if /^$/;
+			push(@pattern, $_);
+		}
+	}
 
-    return join('|', @pattern);
+	return join('|', @pattern);
 }
 
 sub reload_config {
-    info_message('Got SIGHUP, reloading config');
-    &setup;
+	info_message('Got SIGHUP, reloading config');
+	&setup;
 }
 
 sub toggle_debug {
-    $cfg->{debug} = !$cfg->{debug};
-    info_message('Got SIGUSR1, '.($cfg->{debug} ? 'en':'dis').'abling debug output');
+	$cfg->{debug} = !$cfg->{debug};
+	info_message('Got SIGUSR1, '.($cfg->{debug} ? 'en':'dis').'abling debug output');
 }
 
 sub handle_connection {
-    # now begin connection's personal stuff
+	# now begin connection's personal stuff
 
-    my $client;
+	my $client;
 
-    debug_message('New '. ($mode ? "\U$mode" : 'Daemon') .' connection');
+	debug_message('New '. ($mode ? "\U$mode" : 'Daemon') .' connection');
 
-    if($mode) { # Not standalone daemon
-	$source=*STDIN;
-	$con = *STDOUT;
-	# identify client in the logs.
-	if (exists $ENV{REMOTE_ADDR}){ # CGI/pkg-cacher-cleanup mode
-	    $client=$ENV{REMOTE_ADDR};
-	}
-	else { # inetd mode
-	    $client='INETD';
-	    $cfg->{daemon_port} = &get_inetd_port();
-    	}
-    }
-    else { # Standalone daemon mode
-
-	$con = shift;
-	$source = $con;
-	$client = $con->peerhost;
-    }
-
-    if($mode ne 'inetd') {
-	# ----------------------------------------------------------------------------
-	# Let's do some security checking. We only want to respond to clients within an
-	# authorised address range (127.0.0.1 and ::1 are always allowed).
-
-	my $ip_pass = 1;
-	my $ip_fail = 0;
-	my $clientaddr;
-
-	# allowed_hosts == '*' means allow all ('' means deny all)
-	# denied_hosts == '' means don't explicitly deny any
-	# localhost is always accepted
-	# otherwise host must be in allowed list and not in denied list to be accepted
-
-	if ($client =~ /:/) # IPv6?
-	{
-	    defined ($clientaddr = ipv6_normalise ($client)) or goto badaddr;
-	    if (substr ($clientaddr, 0, 12) eq "\0\0\0\0\0\0\0\0\0\0\xFF\xFF")
-	    {
-		$clientaddr = substr ($clientaddr, 12);
-		goto is_ipv4;
-	    }
-	    elsif ($clientaddr eq "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1")
-	    {
-		debug_message('client is localhost');
-	    }
-	    else
-	    {
-		$ip_pass = ($cfg->{allowed_hosts_6} =~ /^\*?$/) ||
-		ipv6_addr_in_list ($clientaddr, 'allowed_hosts_6');
-		$ip_fail = ipv6_addr_in_list ($clientaddr, 'denied_hosts_6');
-	    }
-	}
-	elsif (defined ($clientaddr = ipv4_normalise ($client))) # IPv4?
-	{
-	    is_ipv4:
-	    if ($clientaddr eq "\x7F\0\0\1")
-	    {
-		debug_message('client is localhost');
-	    }
-	    else
-	    {
-		$ip_pass = ($cfg->{allowed_hosts} =~ /^\*?$/) ||
-		ipv4_addr_in_list ($clientaddr, 'allowed_hosts');
-		$ip_fail = ipv4_addr_in_list ($clientaddr, 'denied_hosts');
-	    }
-	}
-	else
-	{
-	    goto badaddr;
-	}
-
-	# Now check if the client address falls within this range
-	if ($ip_pass && !$ip_fail)
-	{
-	    # Everything's cool, client is in allowed range
-	    debug_message("Client $client passed access control rules");
-	}
-	else
-	{
-	    # Bzzzt, client is outside allowed range. Send a 403 and bail.
-	badaddr:
-	    debug_message("Alert: client $client disallowed by access control");
-	    &sendrsp(403, 'Access to cache prohibited');
-	    exit(4);
-	}
-    }
-
-    REQUEST:
-    while(!$concloseflag) {
-
-	my $reqstpath;
-	my $testpath; # temporary, to be set by GET lines, undef on GO
-	my $ifmosince;# to be undef by new GET lines
-	my $send_head_only=0; # to be undef by new GET lines
-	my $tolerated_empty_lines=1;
-	my $hostreq;
-	my $rangereq="";
-	my $httpver;
-	my $force_download=0;
-	my $cache_status;
-
-	# reading input line by line, through the secure input method
-    CLIENTLINE:
-	while(1) {
-
-	    debug_message('Processing a new request line');
-
-	    $_=&getRequestLine;
-	    debug_message("got: $_");
-
-	    if (!defined($_)) {
-		exit(0);
-	    }
-
-	    if(/^$/) {
-		if(defined($testpath)) {
-		    # done reading request
-		    $reqstpath=$testpath;
-		    last CLIENTLINE;
+	if ($mode) { # Not standalone daemon
+		$source=*STDIN;
+		$con = *STDOUT;
+		# identify client in the logs.
+		if (exists $ENV{REMOTE_ADDR}){ # CGI/pkg-cacher-cleanup mode
+			$client=$ENV{REMOTE_ADDR};
+		} else { # inetd mode
+			$client='INETD';
+			$cfg->{daemon_port} = &get_inetd_port();
 		}
-		elsif(!$tolerated_empty_lines)   {
-		    &sendrsp(403, 'Go away');
-		    exit(4);
-		}
-		else {
-		    $tolerated_empty_lines--;
-		}
-	    }
-	    else {
+	} else { # Standalone daemon mode
 
-		if(/^(GET|HEAD)\s+(\S+)(?:\s+HTTP\/(\d\.\d))?/) {
-		    if(defined($testpath)) {
-			&sendrsp(403, 'Confusing request');
+		$con = shift;
+		$source = $con;
+		$client = $con->peerhost;
+	}
+
+	if ($mode ne 'inetd') {
+		# ----------------------------------------------------------------------------
+		# Let's do some security checking. We only want to respond to clients within an
+		# authorized address range (127.0.0.1 and ::1 are always allowed).
+
+		my $ip_pass = 1;
+		my $ip_fail = 0;
+		my $clientaddr;
+
+		# allowed_hosts == '*' means allow all ('' means deny all)
+		# denied_hosts == '' means don't explicitly deny any
+		# localhost is always accepted
+		# otherwise host must be in allowed list and not in denied list to be accepted
+
+		if ($client =~ /:/) { # IPv6?
+			defined ($clientaddr = ipv6_normalise ($client)) or goto badaddr;
+			if (substr ($clientaddr, 0, 12) eq "\0\0\0\0\0\0\0\0\0\0\xFF\xFF") {
+				$clientaddr = substr ($clientaddr, 12);
+				goto is_ipv4;
+			} elsif ($clientaddr eq "\0\0\0\0\0\0\0\0\0\0\0\0\0\0\0\1") {
+				debug_message('client is localhost');
+			} else {
+				$ip_pass = ($cfg->{allowed_hosts_6} =~ /^\*?$/) ||
+				ipv6_addr_in_list ($clientaddr, 'allowed_hosts_6');
+				$ip_fail = ipv6_addr_in_list ($clientaddr, 'denied_hosts_6');
+			}
+		} elsif (defined ($clientaddr = ipv4_normalise ($client))) { # IPv4?
+			is_ipv4:
+			if ($clientaddr eq "\x7F\0\0\1") {
+				debug_message('client is localhost');
+			} else {
+				$ip_pass = ($cfg->{allowed_hosts} =~ /^\*?$/) ||
+					ipv4_addr_in_list ($clientaddr, 'allowed_hosts');
+				$ip_fail = ipv4_addr_in_list ($clientaddr, 'denied_hosts');
+			}
+		} else {
+			goto badaddr;
+		}
+
+		# Now check if the client address falls within this range
+		if ($ip_pass && !$ip_fail) {
+			# Everything's cool, client is in allowed range
+			debug_message("Client $client passed access control rules");
+		} else {
+			# Bzzzt, client is outside allowed range. Send a 403 and bail.
+		badaddr:
+			debug_message("Alert: client $client disallowed by access control");
+			&sendrsp(403, 'Access to cache prohibited');
 			exit(4);
-		    }
-		    $testpath=$2;
-		    $httpver=$3;
-		    # also support pure HEAD calls
-		    if($1 eq 'HEAD') {
-			$send_head_only=1;
-		    }
 		}
-		elsif(/^Host:\s+(\S+)/) {
-		    $hostreq=$1;
-		}
-		elsif(/^((?:Pragma|Cache-Control):\s+\S+)/) {
-		    debug_message("Request specified $1");
-		    push @cache_control, $1;
-		    if ($1=~/no-cache/) {
-			$cache_status = 'EXPIRED';
-			debug_message("Download forced");
-		    }
-		}
-		elsif(/^Connection: close/i) {
-		    $concloseflag=1;
-		}
-		elsif(/^Connection: .*TE/) {
-		    $concloseflag=1;
-		}
-		elsif(/^Range:\s+(.*)/i) {
-		    $rangereq=$1;
-		}
-		elsif(/^If-Modified-Since:\s+(.*)/i) {
-		    $ifmosince=$1;
-		}
-		elsif(/^\S+: [^:]*/) {
-		    # whatever, but valid
-		}
-		else {
-		    info_message("Failed to parse input: $_");
-		    &sendrsp(403, "Could not understand $_");
-		    exit(4);
-		}
-	    }
 	}
 
-	# RFC2612 requires bailout for HTTP/1.1 if no Host
-	if (!$hostreq && $httpver>='1.1') {
-	    &sendrsp(400, 'Host Header missing');
-	    exit(4);
-	}
+	REQUEST:
+	while (!$concloseflag) {
 
-	# always resend the file if a part was requested since we don't support ranges
-	$ifmosince=0 if $rangereq;
+		my $reqstpath;
+		my $testpath; # temporary, to be set by GET lines, undef on GO
+		my $ifmosince;# to be undef by new GET lines
+		my $send_head_only=0; # to be undef by new GET lines
+		my $tolerated_empty_lines=1;
+		my $hostreq;
+		my $rangereq="";
+		my $httpver;
+		my $force_download=0;
+		my $cache_status;
 
-	# Decode embedded ascii codes in URL
-	$reqstpath =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
+		# reading input line by line, through the secure input method
+		CLIENTLINE:
+		while(1) {
 
-	# tolerate CGI specific junk and two slashes in the beginning
-	$reqstpath =~ s!^/pkg-cacher\??/!/!;
-	$reqstpath =~ s!^//!/!;
+			debug_message('Processing a new request line');
 
-	if ($reqstpath =~ m!^http://([^/]+)!) { # Absolute URI
-	    # Check host or proxy
-	    debug_message("Checking host $1 in absolute URI");
-	    my $sock = io_socket_inet46(PeerAddr=> $1, # possibly with port
-					PeerPort=> 80, # Default, overridden if
-                                                       # port also in PeerAddr
-					Proto   => 'tcp');
-	    # proxy may be required to reach host
-	    if (!defined($sock) && !$cfg->{use_proxy}) {
-		info_message("Unable to connect to $1");
-		&sendrsp(404, "Unable to connect to $1");
-		exit(4);
-	    }
-	    # Both host and port need to be matched.  In inetd mode daemon_port
-	    # is read from inetd.conf by get_inetd_port(). CGI mode shouldn't
-	    # get absolute URLs.
-	    if (defined($sock) &&
-		$sock->sockhost =~ $sock->peerhost &&
-		$sock->peerport == $cfg->{daemon_port}) { # Host is this host
-		debug_message('Host in Absolute URI is this server');
-		$reqstpath =~ s!^http://[^/]+!!; # Remove prefix and hostname
-	    }
-	    else { # Proxy request
-		debug_message('Host in Absolute URI is not this server');
-		$reqstpath =~ s!^http:/!!; # Remove absolute prefix
-	    }
-	    defined($sock) && $sock->shutdown(2); # Close
-	}
-	debug_message("Resolved request is $reqstpath");
+			$_=&getRequestLine;
+			debug_message("got: $_");
 
-	# Now parse the path
-	if ($reqstpath =~ /^\/?report/) {
-	    usage_report();
-	    exit(0);
-	}
+			if (!defined($_)) {
+				exit(0);
+			}
 
-	if ($reqstpath !~ m(^/?.+/.+)) {
-	    usage_error($client);
-	}
+			if (/^$/) {
+				if (defined($testpath)) {
+					# done reading request
+					$reqstpath=$testpath;
+					last CLIENTLINE;
+				} elsif (!$tolerated_empty_lines) {
+					&sendrsp(403, 'Go away');
+					exit(4);
+				} else {
+					$tolerated_empty_lines--;
+				}
+			} else {
 
-	my ($host,$uri) = ($reqstpath =~ m#^/?([^/]+)(/.+)#);
-
-	if ( !$host || !$uri ) {
-	    usage_error($client);
-	}
-
-	$uri =~ s#/{2,}#/#g; # Remove multiple separators
-	($filename) = ($uri =~ /\/?([^\/]+)$/);
-
-	if ($cfg->{allowed_locations}) {
-	    #         debug_message('Doing location check for '.$cfg->{allowed_locations} );
-	    my $mess;
-	    my $cleanuri=$uri;
-	    $cleanuri=~s!/[^/]+/[\.]{2}/!/!g;
-	    if ($host eq '..' ) {
-		$mess = q!'..' contained in the hostname!;
-	    }
-	    elsif ($cleanuri =~/\/\.\./) {
-		$mess = 'File outside of the allowed path';
-	    }
-	    else {
-		for( split(/\s*[;,]\s*/,$cfg->{allowed_locations}) ) {
-		    debug_message("Testing URI: $host$cleanuri on $_");
-		    goto location_allowed if ("$host$cleanuri" =~ /^$_/);
+				if (/^(GET|HEAD)\s+(\S+)(?:\s+HTTP\/(\d\.\d))?/) {
+					if (defined($testpath)) {
+						&sendrsp(403, 'Confusing request');
+						exit(4);
+					}
+					$testpath=$2;
+					$httpver=$3;
+					# also support pure HEAD calls
+					if ($1 eq 'HEAD') {
+						$send_head_only=1;
+					}
+				} elsif (/^Host:\s+(\S+)/) {
+					$hostreq=$1;
+				} elsif (/^((?:Pragma|Cache-Control):\s+\S+)/) {
+					debug_message("Request specified $1");
+					push @cache_control, $1;
+					if ($1=~/no-cache/) {
+						$cache_status = 'EXPIRED';
+						debug_message("Download forced");
+					}
+				} elsif(/^Connection: close/i) {
+					$concloseflag=1;
+				} elsif(/^Connection: .*TE/) {
+					$concloseflag=1;
+				} elsif(/^Range:\s+(.*)/i) {
+					$rangereq=$1;
+				} elsif(/^If-Modified-Since:\s+(.*)/i) {
+					$ifmosince=$1;
+				} elsif(/^\S+: [^:]*/) {
+					# whatever, but valid
+				} else {
+					info_message("Failed to parse input: $_");
+					&sendrsp(403, "Could not understand $_");
+					exit(4);
+				}
+			}
 		}
-		$mess = "Host '$host' is not configured in the allowed_locations directive";
-	    }
-	badguy:
-	    debug_message("$mess; access denied");
-	    &sendrsp(403, "Access to cache prohibited, $mess");
-	    exit(4);
-	}
-    location_allowed:
 
-	if ($filename =~ /$static_files_regexp/) {
-	    # We must be fetching a .deb or a .rpm or some other recognised
-	    # file, so let's cache it.
-	    # Place the file in the cache with just its basename
-	    debug_message("base file: $filename");
-	}
-	elsif ($filename =~ /2\d\d\d-\d\d-\d\d.*\.gz$/) {
-	    # a patch file. Needs a unique filename but no freshness checks
-	    debug_message("pdiff file: $filename");
-	}
-	elsif ($filename =~ /^(?:vmlinuz|initrd\.gz)$/) {
-	    # Installer or Debian-live files
-	    # Need to be long names, but not index
-	    debug_message("installer file: $filename");
-	}
-	elsif (&is_index_file($filename)) {
-	    # It's a Packages.gz or related file: make a long filename so we can
-	    # cache these files without the names colliding
-	    debug_message("index file: $filename");
-	} else {
-	    # Maybe someone's trying to use us as a general purpose proxy / relay.
-	    # Let's stomp on that now.
-	    info_message("Sorry, not allowed to fetch that type of file: $filename");
-	    &sendrsp(403, "Sorry, not allowed to fetch that type of file: $filename");
-	    exit(4);
-	}
-
-	$cached_file = "$cfg->{cache_dir}/packages/$host$uri";
-	$cached_head = "$cfg->{cache_dir}/headers/$host$uri";
-	$complete_file = "$cfg->{cache_dir}/private/$host$uri.complete";
-	$notify_file = "$cfg->{cache_dir}/private/$host$uri.notify";
-
-	foreach my $file ($cached_file, $cached_head, $complete_file) {
-	    my ($filepath) = $file =~ /(.*\/)[^\/]+/;
-
-	    debug_message("Checking for directory $filepath");
-
-	    if (! -d $filepath) {
-		debug_message("Directory doesn't exist, creating $filepath");
-		eval { mkpath($filepath) };
-		if ($@) {
-		    info_message("Unable to create directory $filepath: $@");
-		    &sendrsp(403, "System error: $filename");
-		    exit(4);
+		# RFC2612 requires bailout for HTTP/1.1 if no Host
+		if (!$hostreq && $httpver>='1.1') {
+			&sendrsp(400, 'Host Header missing');
+			exit(4);
 		}
-	    }
-	}
 
-	debug_message("looking for $cached_file");
+		# Decode embedded ascii codes in URL
+		$reqstpath =~ s/%([0-9A-Fa-f]{2})/chr(hex($1))/eg;
 
-	if (&is_index_file($filename)) {
-	    debug_message("known as index file: $filename");
-	    # in offline mode, if not already forced deliver it as-is, otherwise check freshness
-	    if ($cache_status ne 'EXPIRED' && -f $cached_file && -f $cached_head && !$cfg->{offline_mode}) {
-		if($cfg->{expire_hours} > 0) {
-		    my $now = time();
-		    my @stat = stat($cached_file);
-		    if (@stat && int(($now - $stat[9])/3600) > $cfg->{expire_hours}) {
-			debug_message("unlinking $filename because it is too old");
-			# Set the status to EXPIRED so the log file can show it
-			# was downloaded again
-			$cache_status = 'EXPIRED';
-			debug_message($cache_status);
-		    }
+		# tolerate CGI specific junk and two slashes in the beginning
+		$reqstpath =~ s!^/pkg-cacher\??/!/!;
+		$reqstpath =~ s!^//!/!;
+
+		if ($reqstpath =~ m!^http://([^/]+)!) { # Absolute URI
+			# Check host or proxy
+			debug_message("Checking host $1 in absolute URI");
+			my $sock = io_socket_inet46(PeerAddr=> $1, # possibly with port
+						PeerPort=> 80, # Default, overridden if
+														   # port also in PeerAddr
+						Proto   => 'tcp');
+			# proxy may be required to reach host
+			if (!defined($sock) && !$cfg->{use_proxy}) {
+				info_message("Unable to connect to $1");
+				&sendrsp(404, "Unable to connect to $1");
+				exit(4);
+			}
+			# Both host and port need to be matched.  In inetd mode daemon_port
+			# is read from inetd.conf by get_inetd_port(). CGI mode shouldn't
+			# get absolute URLs.
+			if (defined($sock) &&
+				$sock->sockhost =~ $sock->peerhost &&
+				$sock->peerport == $cfg->{daemon_port}) { # Host is this host
+				debug_message('Host in Absolute URI is this server');
+				$reqstpath =~ s!^http://[^/]+!!; # Remove prefix and hostname
+			} else { # Proxy request
+				debug_message('Host in Absolute URI is not this server');
+				$reqstpath =~ s!^http:/!!; # Remove absolute prefix
+			}
+			defined($sock) && $sock->shutdown(2); # Close
 		}
-		else {
-		    # use HTTP timestamping/ETag
-		    my ($oldmod,$newmod,$oldtag,$newtag,$testfile);
-		    my $response = ${&libcurl($host, $uri, undef)}; # HEAD only
-		    if($response->is_success) {
-		      $newmod = $response->header('Last-Modified');
-		      $newtag = $response->header('ETag');
-		      if(($newmod||$newtag) && open($testfile, $cached_head)) {
+		debug_message("Resolved request is $reqstpath");
 
-			  for ($newmod,$newtag) {
-			      s/[\n\r]//g;
-			  }
-
-			  for(<$testfile>){
-			      if(/^.*Last-Modified:\s(.*)(?:\r|\n)/) {
-				  $oldmod = $1;
-			      }
-			      elsif (/^.*ETag:\s*(.*)(?:\r|\n)/) {
-				  $oldtag = $1;
-			      }
-			      last if $oldtag && $oldmod;
-			  }
-			  close($testfile);
-		      }
-		      # Don't use ETag by default for now: broken on some servers
-		      if($cfg->{use_etags} && $oldtag && $newtag) { # Try ETag first
-			  if ($oldtag eq $newtag) {
-			      debug_message("ETag headers match, $oldtag <-> $newtag. Cached file unchanged");
-			  }
-			  else {
-			      debug_message("ETag headers different, $oldtag <-> $newtag. Refreshing cached file");
-			      $cache_status = 'EXPIRED';
-			      debug_message($cache_status);
-			  }
-		      }
-		      else {
-			  if($oldmod && (str2time($oldmod) >= str2time($newmod)) ) {
-			      # that's ok
-			      debug_message("cached file is up to date or more recent, $oldmod <-> $newmod");
-			  }
-			  else {
-			      debug_message("downloading $filename because more recent version is available: $oldmod <-> $newmod");
-			      $cache_status = 'EXPIRED';
-			      debug_message($cache_status);
-			  }
-		      }
-		  }
-		    else {
-			debug_message('HEAD request error: '.$response->status_line.' Reusing existing file');
-			$cache_status = 'OFFLINE';
-		    }
+		# Now parse the path
+		if ($reqstpath =~ /^\/?report/) {
+			usage_report();
+			exit(0);
 		}
-	    }
-	}
+
+		if ($reqstpath !~ m(^/?.+/.+)) {
+			usage_error($client);
+		}
+
+		my ($host,$uri) = ($reqstpath =~ m#^/?([^/]+)(/.+)#);
+
+		if ( !$host || !$uri ) {
+			usage_error($client);
+		}
+
+		$uri =~ s#/{2,}#/#g; # Remove multiple separators
+		($filename) = ($uri =~ /\/?([^\/]+)$/);
+
+		if ($cfg->{allowed_locations}) {
+			#         debug_message('Doing location check for '.$cfg->{allowed_locations} );
+			my $mess;
+			my $cleanuri=$uri;
+			$cleanuri=~s!/[^/]+/[\.]{2}/!/!g;
+			if ($host eq '..' ) {
+				$mess = q!'..' contained in the hostname!;
+			} elsif ($cleanuri =~/\/\.\./) {
+				$mess = 'File outside of the allowed path';
+			} else {
+				for( split(/\s*[;,]\s*/,$cfg->{allowed_locations}) ) {
+					debug_message("Testing URI: $host$cleanuri on $_");
+					goto location_allowed if ("$host$cleanuri" =~ /^$_/);
+				}
+				$mess = "Host '$host' is not configured in the allowed_locations directive";
+			}
+		badguy:
+			debug_message("$mess; access denied");
+			&sendrsp(403, "Access to cache prohibited, $mess");
+			exit(4);
+		}
+		location_allowed:
+
+		if ($filename =~ /$static_files_regexp/) {
+			# We must be fetching a .deb or a .rpm or some other recognised
+			# file, so let's cache it.
+			# Place the file in the cache with just its basename
+			debug_message("base file: $filename");
+		} elsif (&is_index_file($filename)) {
+			# It's a Packages.gz or related file: make a long filename so we can
+			# cache these files without the names colliding
+			debug_message("index file: $filename");
+		} else {
+			# Maybe someone's trying to use us as a general purpose proxy / relay.
+			# Let's stomp on that now.
+			info_message("Sorry, not allowed to fetch that type of file: $filename");
+			&sendrsp(403, "Sorry, not allowed to fetch that type of file: $filename");
+			exit(4);
+		}
+
+		$cached_file = "$cfg->{cache_dir}/packages/$host$uri";
+		$cached_head = "$cfg->{cache_dir}/headers/$host$uri";
+		$complete_file = "$cfg->{cache_dir}/private/$host$uri.complete";
+		$notify_file = "$cfg->{cache_dir}/private/$host$uri.notify";
+
+		foreach my $file ($cached_file, $cached_head, $complete_file) {
+			my ($filepath) = $file =~ /(.*\/)[^\/]+/;
+
+			debug_message("Checking for directory $filepath");
+
+			if (! -d $filepath) {
+				debug_message("Directory doesn't exist, creating $filepath");
+				eval { mkpath($filepath) };
+				if ($@) {
+					info_message("Unable to create directory $filepath: $@");
+					&sendrsp(403, "System error: $filename");
+					exit(4);
+				}
+			}
+		}
+
+		debug_message("looking for $cached_file");
+
+		if (&is_index_file($filename)) {
+			debug_message("known as index file: $filename");
+			# in offline mode, if not already forced deliver it as-is, otherwise check freshness
+			if ($cache_status ne 'EXPIRED' && -f $cached_file && -f $cached_head && !$cfg->{offline_mode}) {
+				if ($cfg->{expire_hours} > 0) {
+					my $now = time();
+					my @stat = stat($cached_file);
+					if (@stat && int(($now - $stat[9])/3600) > $cfg->{expire_hours}) {
+						debug_message("unlinking $filename because it is too old");
+						# Set the status to EXPIRED so the log file can show it
+						# was downloaded again
+						$cache_status = 'EXPIRED';
+						debug_message($cache_status);
+					}
+				} else {
+					# use HTTP timestamping/ETag
+					my ($oldmod,$newmod,$oldtag,$newtag,$testfile);
+					my $response = ${&libcurl($host, $uri, undef)}; # HEAD only
+					if ($response->is_success) {
+						$newmod = $response->header('Last-Modified');
+						$newtag = $response->header('ETag');
+						if (($newmod||$newtag) && open($testfile, $cached_head)) {
+
+							for ($newmod,$newtag) {
+								s/[\n\r]//g;
+							}
+
+							for (<$testfile>) {
+								if (/^.*Last-Modified:\s(.*)(?:\r|\n)/) {
+								  $oldmod = $1;
+								} elsif (/^.*ETag:\s*(.*)(?:\r|\n)/) {
+								  $oldtag = $1;
+								}
+								last if $oldtag && $oldmod;
+							}
+							close($testfile);
+						}
+# Don't use ETag by default for now: broken on some servers
+						if ($cfg->{use_etags} && $oldtag && $newtag) { # Try ETag first
+							if ($oldtag eq $newtag) {
+							  debug_message("ETag headers match, $oldtag <-> $newtag. Cached file unchanged");
+							} else {
+							  debug_message("ETag headers different, $oldtag <-> $newtag. Refreshing cached file");
+							  $cache_status = 'EXPIRED';
+							  debug_message($cache_status);
+							}
+						} else {
+							if ($oldmod && (str2time($oldmod) >= str2time($newmod)) ) {
+# that's ok
+								debug_message("cached file is up to date or more recent, $oldmod <-> $newmod");
+							} else {
+								debug_message("downloading $filename because more recent version is available: $oldmod <-> $newmod");
+								$cache_status = 'EXPIRED';
+								debug_message($cache_status);
+							}
+						}
+					} else {
+						debug_message('HEAD request error: '.$response->status_line.' Reusing existing file');
+						$cache_status = 'OFFLINE';
+					}
+				}
+			}
+		}
 	
-	# handle if-modified-since in a better way (check the equality of
-	# the time stamps). Do only if download not forced above.
+		# handle if-modified-since in a better way (check the equality of
+		# the time stamps). Do only if download not forced above.
 
-	if ($ifmosince && $cache_status ne 'EXPIRED') {
-	    $ifmosince =~ s/\n|\r//g;
+		if ($ifmosince && $cache_status ne 'EXPIRED') {
+			$ifmosince =~ s/\n|\r//g;
 
-	    my $oldhead;
-	    if (open(my $testfile, $cached_head)) {
-	      LINE: for(<$testfile>){
-		    if(/^.*Last-Modified:\s(.*)(?:\r|\n)/) {
-			$oldhead = $1;
-			last LINE;
-		    }
+			my $oldhead;
+			if (open(my $testfile, $cached_head)) {
+				LINE:
+				for(<$testfile>){
+					if(/^.*Last-Modified:\s(.*)(?:\r|\n)/) {
+						$oldhead = $1;
+						last LINE;
+					}
+				}
+				close($testfile);
+			}
+
+			if ($oldhead && str2time($ifmosince) >= str2time($oldhead)) {
+				&sendrsp(304, 'Not Modified');
+				debug_message("File not changed: $ifmosince");
+				next REQUEST;
+			}
 		}
-		close($testfile);
-	    }
 
-	    if($oldhead && str2time($ifmosince) >= str2time($oldhead)) {
-		&sendrsp(304, 'Not Modified');
-		debug_message("File not changed: $ifmosince");
-		next REQUEST;
-	    }
-	}
+		&set_global_lock(': file download decision'); # file state decisions, lock that area
 
-	&set_global_lock(': file download decision'); # file state decisions, lock that area
+		my $fromfile; # handle for return_file()
 
-	my $fromfile; # handle for return_file()
+		# download or not decision. Also releases the global lock
+		dl_check:
+		if (!$force_download && -e $cached_head && -e $cached_file && !$cache_status) {
+			sysopen($fromfile, $cached_file, O_RDONLY) ||
+				barf("Unable to open $cached_file: $!.");
+			if (-f $complete_file) {
+				# not much to do if complete
+				$cache_status = 'HIT';
+				debug_message($cache_status);
+			} else {
+				# a fetcher was either not successful or is still running
+				# look for activity...
+				if (flock($fromfile, LOCK_EX|LOCK_NB)) {
+					flock($fromfile, LOCK_UN);
+					# No fetcher working on this package. Redownload it.
+					close($fromfile);
+					undef $fromfile;
+					debug_message('no fetcher running, downloading');
+					$force_download=1;
+					goto dl_check;
+				} else {
+					debug_message('Another fetcher already working on file');
+				}
+			}
+			&release_global_lock;
+		} else {
+			# bypass for offline mode, no forking, just report the "problem"
+			if ($cfg->{offline_mode}) {
+				&release_global_lock;
+				&sendrsp(503, 'Service not available: pkg-cacher offline');
+				next REQUEST;
+			}
+			# (re) download them
+			unlink($cached_file, $cached_head, $complete_file, $notify_file);
+			debug_message('file does not exist or download required, forking fetcher');
+			# Need separate filehandles for reading and writing,
+			# relying on dup at the fork leaves a shared seek pointer
+			sysopen(my $pkfd, $cached_file, O_RDWR|O_CREAT|O_EXCL, 0644)
+				|| barf("Unable to create new $cached_file: $!");
+			sysopen($fromfile, $cached_file, O_RDONLY)
+				|| barf("Unable to open $cached_file: $!.");
+			# Set the status to MISS so the log file can show it had to be downloaded
+			if (!defined($cache_status)) { # except on special presets from index file checks above
+				$cache_status = 'MISS';
+				debug_message($cache_status);
+			}
 
-	# download or not decision. Also releases the global lock
-	dl_check:
-	if( !$force_download && -e $cached_head && -e $cached_file && !$cache_status) {
-	    sysopen($fromfile, $cached_file, O_RDONLY) ||
-	      barf("Unable to open $cached_file: $!.");
-	    if (-f $complete_file) {
-		# not much to do if complete
-		$cache_status = 'HIT';
-		debug_message($cache_status);
-	    }
-	    else {
-		# a fetcher was either not successful or is still running
-		# look for activity...
-		if (flock($fromfile, LOCK_EX|LOCK_NB)) {
-		    flock($fromfile, LOCK_UN);
-		    # No fetcher working on this package. Redownload it.
-		    close($fromfile);
-		    undef $fromfile;
-		    debug_message('no fetcher running, downloading');
-		    $force_download=1;
-		    goto dl_check;
+			my $pid = fork();
+			if ($pid < 0) {
+				barf('fork() failed');
+			}
+			if ($pid == 0) {
+				# child, the fetcher thread
+				undef @childPids;
+				&fetch_store ($host, $uri, \$pkfd);	# releases the global lock
+													# after locking the target
+													# file
+				exit(0);
+			}
+			# parent continues
+			push @childPids, $pid;
+			debug_message("registered child process: $pid");
 		}
-		else {
-		    debug_message('Another fetcher already working on file');
+
+		debug_message('checks done, can return now');
+		my $ret = &return_file ($send_head_only ? undef : \$fromfile, $rangereq);
+		if ($ret==2) { # retry code
+			debug_message('return_file requested retry');
+			goto dl_check;
 		}
-	    }
-	    &release_global_lock;
-	}
-	else {
-	    # bypass for offline mode, no forking, just report the "problem"
-	    if($cfg->{offline_mode})
-	    {
-		&release_global_lock;
-		&sendrsp(503, 'Service not available: pkg-cacher offline');
-		next REQUEST;
-	    }
-	    # (re) download them
-	    unlink($cached_file, $cached_head, $complete_file, $notify_file);
-	    debug_message('file does not exist or download required, forking fetcher');
-	    # Need separate filehandles for reading and writing,
-	    # relying on dup at the fork leaves a shared seek pointer
-	    sysopen(my $pkfd, $cached_file, O_RDWR|O_CREAT|O_EXCL, 0644)
-	      || barf("Unable to create new $cached_file: $!");
-	    sysopen($fromfile, $cached_file, O_RDONLY)
-	      || barf("Unable to open $cached_file: $!.");
-	    # Set the status to MISS so the log file can show it had to be downloaded
-	    if(!defined($cache_status)) { # except on special presets from index file checks above
-		$cache_status = 'MISS';
-		debug_message($cache_status);
-	    }
+		debug_message('Package sent');
 
-	    my $pid = fork();
-	    if ($pid < 0) {
-		barf('fork() failed');
-	    }
-	    if ($pid == 0) {
-		# child, the fetcher thread
-		undef @childPids;
-		&fetch_store ($host, $uri, \$pkfd); # releases the global lock
-                                                   # after locking the target
-                                                   # file
-		exit(0);
-	    }
-	    # parent continues
-	    push @childPids, $pid;
-	    debug_message("registered child process: $pid");
+		# Write all the stuff to the log file
+		writeaccesslog($cache_status, $filename, $client);
 	}
-
-	debug_message('checks done, can return now');
-	my $ret = &return_file ($send_head_only ? undef : \$fromfile, $rangereq);
-	if ($ret==2) { # retry code
-	    debug_message('return_file requested retry');
-	    goto dl_check;
-	}
-	debug_message('Package sent');
-
-	# Write all the stuff to the log file
-	writeaccesslog($cache_status, $filename, $client);
-    }
 }
 
 sub parse_range {
-    my @result;
-    my ($input_ranges) = $_[0] =~ /^bytes=([\d,-]+)$/i;
+	my @result;
+	my ($input_ranges) = $_[0] =~ /^bytes=([\d,-]+)$/i;
 
-    debug_message("parse_range: input_ranges = $input_ranges");
+	debug_message("parse_range: input_ranges = $input_ranges");
 
-    if ($input_ranges) {
-	HANDLE_RANGE: foreach my $range (split /,/,$input_ranges) {
-	    my ($start, $end, $single) = $range =~ /^(\d+)?-(\d+)?$|^(\d+)$/;
+	if ($input_ranges) {
+		HANDLE_RANGE:
+		foreach my $range (split /,/,$input_ranges) {
+			my ($start, $end, $single) = $range =~ /^(\d+)?-(\d+)?$|^(\d+)$/;
 
-	    debug_message("parse_range: start = $start, end = $end, single = $single");
+			debug_message("parse_range: start = $start, end = $end, single = $single");
 
-	    if ($single) {
-		$start = $end = $single;
-	    }
+			if ($single) {
+				$start = $end = $single;
+			}
 
-	    if ($start && $end && $start > $end) {
+			if ($start && $end && $start > $end) {
+				@result = [ 0, undef ];
+				last HANDLE_RANGE;
+			}
+			push @result, [ $start, $end ];
+		}
+	} else {
 		@result = [ 0, undef ];
-		last HANDLE_RANGE;
-	    }
-	    push @result, [ $start, $end ];
 	}
-    } else {
-    	@result = [ 0, undef ];
-    }
-    return @result;
+	return @result;
 }
 
 sub return_file {
-    # At this point the file is open, and it's either complete or somebody
-    # is fetching its contents
+	# At this point the file is open, and it's either complete or somebody
+	# is fetching its contents
 
-    my $fromfile = ${$_[0]};
-    my $range = $_[1];
-    my $header_printed = 0;
+	my $fromfile = ${$_[0]};
+	my $range = $_[1];
+	my $header_printed = 0;
 
-    my $abort_time = get_abort_time();
-    my $buf;
+	my $abort_time = get_abort_time();
+	my $buf;
 
-    my @range_list;
-    my $total_length;
+	my @range_list;
+	my $total_length;
 
-    my $status_header;
-    my $fixed_headers;
-    my $complete_found;
+	my $status_header;
+	my $fixed_headers;
+	my $complete_found;
 
-    if ($range) {
-	@range_list = parse_range($range);
+	if ($range) {
+		@range_list = parse_range($range);
     } else {
-	@range_list = [ 0, undef ]
-    }
-
-    # add this reader to the notification list before doing anything
-    # useful to the client
-    if (! -f $complete_file) { # there is no point if the package is already downloaded
-	open(my $nf, ">>$notify_file") || die $!;
-	flock($nf, LOCK_EX);
-	print $nf "$$\n";
-	flock($nf, LOCK_UN);
-	close($nf);
-    }
-
-    #
-    # Wait for the header and then read it
-    # 
-    my $code;
-    my $msg;
-
-    WAIT_FOR_HEADER: while (1) {
-	if (time() > $abort_time) {
-	    info_message("return_file $cached_file aborted waiting for header");
-	    &sendrsp(504, 'Request Timeout') if !$header_printed;
-	    exit(4);
+		@range_list = [ 0, undef ]
 	}
 
-	if (-s $cached_head) {
-	    # header file seen, protect the reading
-	    &set_global_lock(': reading the header file');
-	    if (! -f $cached_head) {
-		# file removed while waiting for lock - download failure?!
-		# start over, maybe spawning an own fetcher
-		&release_global_lock;
-		return(2); # retry
-	    }
-
-	    open(my $in, $cached_head) || die $!;
-
-	    $status_header = <$in>; # read exactly one status line
-
-	    ($code, $msg) = ($status_header =~ /^HTTP\S+\s+(\d+)\s(.*)/);
-	    
-	    if ($code == 302) {
-	    	# We got a redirect, wait for the fetcher to process it.
-		info_message('return_file got redirect');
-                for (<$in>) {
-                    if (/^Location:\ *([\S]+)/) {
-                        info_message("New location: $1");
-                    }
-                }
-		close($in);
-		&release_global_lock;
-		sleep(2);
-		next WAIT_FOR_HEADER;
-	    }
-
-	    # keep only interesting parts
-	    $fixed_headers="";
-	    for (<$in>) {
-		if (/^Last-Modified|Content|Accept|ETag|Age/) {
-		    if (/^Content-Length:\ *(\d+)/) {
-			$total_length = $1;
-		    } else {
-			$fixed_headers .= $_;
-		    }
-		}
-	    }
-
-	    close($in);
-	    &release_global_lock;
-
-	    last WAIT_FOR_HEADER;
-	}
-	sleep(1);
-    }
-
-    # alternative for critical errors
-    if (!defined($code)) {
-	($code, $msg) = ($status_header =~ /^(5\d\d)\s(.*)/);
-    }
-
-    if (!defined($code)) {
-	info_message("Faulty header file detected: $cached_head, first line was: $status_header");
-	unlink $cached_head;
-	&sendrsp(500, 'Internal Server Error');
-	exit(3);
-    }
-
-    # in CGI mode, use alternative status line. Don't print one
-    # for normal data output (apache does not like that) but on
-    # abnormal codes, and then exit immediately
-    if ($mode eq 'cgi' && $code != 200) {
-	# don't print the head line but a Status on errors instead
-	print $con "Status: $code $msg\n\n";
-	exit(1);
-    }
-
-    # keep alive or not?
-    # If error, force close
-    if ($code != 200) {
-	debug_message("Got $code error. Going to close connection.");
-
-	$status_header .= "Connection: Close\r\n";
-	print $con $status_header."\r\n";
-	# Stop after sending the header with errors
-	return;
-    }
-
-    # Otherwise follow the client
-    $fixed_headers .= 'Connection: '.($concloseflag ? 'Close' : 'Keep-Alive')."\r\n";
-
-    if (!$fromfile) {
-	$status_header .= $fixed_headers;
-	print $con $status_header."\r\n";
-	# pure HEAD request, we are done
-	return;
-    }
-
-    #
-    # Process range list
-    # 	Fill in start for range relative to the end.
-    # 	Verify that at least one range overlaps the file.
-    # 
-    my $no_valid_ranges = 1;
-
-    foreach my $range_entry (@range_list) {
-    	my $begin = $range_entry->[0];
-	my $end = $range_entry->[1];
-    	if ($begin == undef) {
-	    # last n bytes of file
-	    $begin = $total_length - $end;
-	    if ($begin < 0) {
-	    	$begin = 0;
-	    }
-	    $end = undef;
-	    $no_valid_ranges = 0;
-	} elsif ($begin < $total_length) {
-	    $no_valid_ranges = 0;
-	}
-    }
-
-    if ($no_valid_ranges) {
-	$status_header = "HTTP/1.1 416 Requested Range Not Satisfiable\r\n";
-	$status_header .= "Connection: Close\r\n";
-	print $con $status_header."\r\n";
-	return;
-    }
-
-    debug_message("ready to send contents of $cached_file");
-
-    RANGE_ENTRY: foreach my $range_entry (@range_list) {
-
-    	my $begin = $range_entry->[0];
-	my $end = $range_entry->[1];
-
-	debug_message("begin = $begin, end = $end");
-
-	next RANGE_ENTRY if ($begin >= $total_length);
-	    
-	# needs to print the header first
-	$header_printed = 0;
-	my $range_start = $begin;
-	my $range_length;
-
-	if ($end == undef || $end > $total_length) {
-	    $range_length = $total_length - $range_start;
-	} else {
-	    $range_length = $end - $begin + 1;
+	# add this reader to the notification list before doing anything
+	# useful to the client
+	if (! -f $complete_file) { # there is no point if the package is already downloaded
+		open(my $nf, ">>$notify_file") || die $!;
+		flock($nf, LOCK_EX);
+		print $nf "$$\n";
+		flock($nf, LOCK_UN);
+		close($nf);
 	}
 
-	debug_message("range_start = $range_start, range_length = $range_length");
+	#
+	# Wait for the header and then read it
+	# 
+	my $code;
+	my $msg;
 
-	CHUNK: while (1) {
-
-	    if (time() > $abort_time) {
-		info_message("return_file $cached_file aborted by timeout at $range_start of $total_length bytes");
-		&sendrsp(504, 'Request Timeout') if !$header_printed;
-		exit(4);
-	    }
-
-	    if (!$header_printed) {
-		# in CGI mode, use alternative status line. Don't print one
-		# for normal data output (apache does not like that) but on
-		# abnormal codes, and then exit immediately
-		if ($mode eq 'cgi') {
+	WAIT_FOR_HEADER:
+	while (1) {
+		if (time() > $abort_time) {
+			info_message("return_file $cached_file aborted waiting for header");
+			&sendrsp(504, 'Request Timeout') if !$header_printed;
+			exit(4);
 		}
 
-		my $headers = '';
+		if (-s $cached_head) {
+			# header file seen, protect the reading
+			&set_global_lock(': reading the header file');
+			if (! -f $cached_head) {
+				# file removed while waiting for lock - download failure?!
+				# start over, maybe spawning an own fetcher
+				&release_global_lock;
+				return(2); # retry
+			}
 
-		if ($begin != 0 || $end != undef) {
-		    $headers .= "HTTP/1.1 206 Partial Content\r\n";
-		    $headers .= 'Content-Range: bytes '.$range_start.'-'.($range_start+$range_length-1).'/'.$total_length."\r\n";
-		} else {
-		    $headers .= $status_header;
+			open(my $in, $cached_head) || die $!;
+
+			$status_header = <$in>; # read exactly one status line
+
+			($code, $msg) = ($status_header =~ /^HTTP\S+\s+(\d+)\s(.*)/);
+			
+			if ($code == 302) {
+				# We got a redirect, wait for the fetcher to process it.
+				info_message('return_file got redirect');
+				for (<$in>) {
+					if (/^Location:\ *([\S]+)/) {
+						info_message("New location: $1");
+					}
+				}
+				close($in);
+				&release_global_lock;
+				sleep(2);
+				next WAIT_FOR_HEADER;
+			}
+
+			# keep only interesting parts
+			$fixed_headers="";
+			for (<$in>) {
+				if (/^Last-Modified|Content|Accept|ETag|Age/) {
+					if (/^Content-Length:\ *(\d+)/) {
+					$total_length = $1;
+					} else {
+					$fixed_headers .= $_;
+					}
+				}
+			}
+
+			close($in);
+			&release_global_lock;
+
+			last WAIT_FOR_HEADER;
 		}
-
-		$headers .= 'Content-Length: '.$range_length."\r\n";
-
-		$headers .= $fixed_headers;
-
-		print $con $headers."\r\n";
-
-		$header_printed = 1;
-		debug_message("Header sent: $headers");
-	    }
-
-	    my $new_pos = sysseek($fromfile, $range_start, SEEK_SET);
-
-	    debug_message("new_pos = $new_pos");
-
-	    if ($new_pos != $range_start) {
-	    	# Still waiting for this part of the file to download
-		sleep 1;
-		next CHUNK;
-	    }
-
-	    my $read_length = $range_length < 65536 ? $range_length : 65536;
-
-	    my $n = sysread($fromfile, $buf, $read_length);
-
-	    debug_message("read $n bytes");
-
-	    if (!defined($n)) {
-		debug_message('Error detected, closing connection');
-		exit(4); # Header already sent, can't notify error
-	    }
-
-	    if ($n == 0) {
-
-		if ($complete_found) {
-		    # complete file was found in the previous iteration
-		    # this is the loop exit condition
-		    #
-		    # final check on size
-#		    if ($total_length && $curlen != $total_length) {
-#			info_message("ALARM! $cached_file file size mismatch (found $curlen, expected $total_length). Renaming to $cached_file.corrupted.");
-#			unlink "$cached_file.corrupted";
-#			rename($cached_file, "$cached_file.corrupted");
-#			exit(5); # Header already sent, can't notify error
-#		    }
-		    last CHUNK;
-		}
-
-		if (-f $complete_file) {
-		    # do another iteration, may need to read remaining data
-		    debug_message('complete file found');
-		    $complete_found=1;
-		    next CHUNK;
-		}
-
-		# debug_message('waiting for new data');
-		# wait for fresh data
 		sleep(1);
-		next CHUNK;
-
-	    } else {
-		$range_length -= $n;
-		$range_start += $n;
-
-		#debug_message("write $n / $curlen bytes");
-		# send data and update watchdog
-		print $con $buf;
-		debug_message("wrote $n (sum: ".($range_start - $begin).' bytes)');
-		$abort_time = get_abort_time();
-
-		next RANGE_ENTRY if ($range_length == 0);
-	    }
 	}
+
+	# alternative for critical errors
+	if (!defined($code)) {
+		($code, $msg) = ($status_header =~ /^(5\d\d)\s(.*)/);
+	}
+
+    if (!defined($code)) {
+		info_message("Faulty header file detected: $cached_head, first line was: $status_header");
+		unlink $cached_head;
+		&sendrsp(500, 'Internal Server Error');
+		exit(3);
+	}
+
+	# in CGI mode, use alternative status line. Don't print one
+	# for normal data output (apache does not like that) but on
+	# abnormal codes, and then exit immediately
+	if ($mode eq 'cgi' && $code != 200) {
+		# don't print the head line but a Status on errors instead
+		print $con "Status: $code $msg\n\n";
+		exit(1);
+	}
+
+	# keep alive or not?
+	# If error, force close
+	if ($code != 200) {
+		debug_message("Got $code error. Going to close connection.");
+
+		$status_header .= "Connection: Close\r\n";
+		print $con $status_header."\r\n";
+		# Stop after sending the header with errors
+		return;
+	}
+
+	# Otherwise follow the client
+	$fixed_headers .= 'Connection: '.($concloseflag ? 'Close' : 'Keep-Alive')."\r\n";
+
+	if (!$fromfile) {
+		$status_header .= $fixed_headers;
+		print $con $status_header."\r\n";
+		# pure HEAD request, we are done
+		return;
+	}
+
+	#
+	# Process range list
+	# 	Fill in start for range relative to the end.
+	# 	Verify that at least one range overlaps the file.
+	# 
+	my $no_valid_ranges = 1;
+
+	foreach my $range_entry (@range_list) {
+		my $begin = $range_entry->[0];
+		my $end = $range_entry->[1];
+			if ($begin == undef) {
+			# last n bytes of file
+			$begin = $total_length - $end;
+			if ($begin < 0) {
+				$begin = 0;
+			}
+			$end = undef;
+			$no_valid_ranges = 0;
+		} elsif ($begin < $total_length) {
+			$no_valid_ranges = 0;
+		}
     }
+
+	if ($no_valid_ranges) {
+		$status_header = "HTTP/1.1 416 Requested Range Not Satisfiable\r\n";
+		$status_header .= "Connection: Close\r\n";
+		print $con $status_header."\r\n";
+		return;
+	}
+
+	debug_message("ready to send contents of $cached_file");
+
+	RANGE_ENTRY: foreach my $range_entry (@range_list) {
+
+		my $begin = $range_entry->[0];
+		my $end = $range_entry->[1];
+
+		debug_message("begin = $begin, end = $end");
+
+		next RANGE_ENTRY if ($begin >= $total_length);
+			
+		# needs to print the header first
+		$header_printed = 0;
+		my $range_start = $begin;
+		my $range_length;
+
+		if ($end == undef || $end > $total_length) {
+			$range_length = $total_length - $range_start;
+		} else {
+			$range_length = $end - $begin + 1;
+		}
+
+		debug_message("range_start = $range_start, range_length = $range_length");
+
+		CHUNK:
+		while (1) {
+
+			if (time() > $abort_time) {
+				info_message("return_file $cached_file aborted by timeout at $range_start of $total_length bytes");
+				&sendrsp(504, 'Request Timeout') if !$header_printed;
+				exit(4);
+			}
+
+			if (!$header_printed) {
+				# in CGI mode, use alternative status line. Don't print one
+				# for normal data output (apache does not like that) but on
+				# abnormal codes, and then exit immediately
+				if ($mode eq 'cgi') {
+				}
+
+				my $headers = '';
+
+				if ($begin != 0 || $end != undef) {
+					$headers .= "HTTP/1.1 206 Partial Content\r\n";
+					$headers .= 'Content-Range: bytes '.$range_start.'-'.($range_start+$range_length-1).'/'.$total_length."\r\n";
+				} else {
+					$headers .= $status_header;
+				}
+
+				$headers .= 'Content-Length: '.$range_length."\r\n";
+
+				$headers .= $fixed_headers;
+
+				print $con $headers."\r\n";
+
+				$header_printed = 1;
+				debug_message("Header sent: $headers");
+			}
+
+			my $new_pos = sysseek($fromfile, $range_start, SEEK_SET);
+
+			debug_message("new_pos = $new_pos");
+
+			if ($new_pos != $range_start) {
+				# Still waiting for this part of the file to download
+				sleep 1;
+				next CHUNK;
+			}
+
+			my $read_length = $range_length < 65536 ? $range_length : 65536;
+
+			my $n = sysread($fromfile, $buf, $read_length);
+
+			debug_message("read $n bytes");
+
+			if (!defined($n)) {
+				debug_message('Error detected, closing connection');
+				exit(4); # Header already sent, can't notify error
+			}
+
+			if ($n == 0) {
+
+				if ($complete_found) {
+					# complete file was found in the previous iteration
+					# this is the loop exit condition
+					#
+					# final check on size
+#					if ($total_length && $curlen != $total_length) {
+#						info_message("ALARM! $cached_file file size mismatch (found $curlen, expected $total_length). Renaming to $cached_file.corrupted.");
+#						unlink "$cached_file.corrupted";
+#						rename($cached_file, "$cached_file.corrupted");
+#						exit(5); # Header already sent, can't notify error
+#					}
+					last CHUNK;
+				}
+
+				if (-f $complete_file) {
+					# do another iteration, may need to read remaining data
+					debug_message('complete file found');
+					$complete_found=1;
+					next CHUNK;
+				}
+
+				# debug_message('waiting for new data');
+				# wait for fresh data
+				sleep(1);
+				next CHUNK;
+
+			} else {
+				$range_length -= $n;
+				$range_start += $n;
+
+				#debug_message("write $n / $curlen bytes");
+				# send data and update watchdog
+				print $con $buf;
+				debug_message("wrote $n (sum: ".($range_start - $begin).' bytes)');
+				$abort_time = get_abort_time();
+
+				next RANGE_ENTRY if ($range_length == 0);
+			}
+		}
+	}
 }
 
 sub usage_error {
-    my $hosturl;
-    my $modestr;
-    if ($mode eq 'cgi') {
-	$hosturl = hostname . '/[cgi-bin/]pkg-cacher';
-	$modestr = 'CGI mode';
-    }
-    else {
-	$hosturl = hostname . ':' . $cfg->{daemon_port};
-	$modestr = 'Daemon mode';
-	$modestr .= ' [inetd]' if ($mode eq 'inetd');
-    }
+	my $hosturl;
+	my $modestr;
+	if ($mode eq 'cgi') {
+		$hosturl = hostname . '/[cgi-bin/]pkg-cacher';
+		$modestr = 'CGI mode';
+	} else {
+		$hosturl = hostname . ':' . $cfg->{daemon_port};
+		$modestr = 'Daemon mode';
+		$modestr .= ' [inetd]' if ($mode eq 'inetd');
+	}
 
-    &open_log_files;
+	&open_log_files;
 	writeerrorlog("$_[0]|--- $0: Usage error");
 
-    &sendrsp(200, 'OK', 'Content-Type', 'text/html', 'Expires', 0);
+	&sendrsp(200, 'OK', 'Content-Type', 'text/html', 'Expires', 0);
 	print $con <<EOF;
 
 <html>
@@ -1141,15 +1041,15 @@ becomes
 <table border=0 cellpadding=3 cellspacing=1 bgcolor="#000000" align="center">
 <tr bgcolor="#9999cc"><th> Directive </th><th> Value </th></tr>
 EOF
-    #Iterate through $cfg and tabulate
-    foreach  (sort(keys %$cfg)) {
-      print $con "<tr bgcolor=\"#cccccc\" align=\"left\"> \
+	#Iterate through $cfg and tabulate
+	foreach  (sort(keys %$cfg)) {
+		print $con "<tr bgcolor=\"#cccccc\" align=\"left\"> \
 		<td bgcolor=\"#ccccff\"> $_ </td> \
 		<td> $cfg->{$_} </td> \
-	     </tr>\n";
-    }
+		</tr>\n";
+	}
 
-    print $con <<EOF;
+	print $con <<EOF;
 </table>
 <p>
 <h2 align="center">License</h2>
@@ -1176,339 +1076,336 @@ Boston, MA 02111-1307, USA.
 </html>
 EOF
 
-    exit(1);
+	exit(1);
 }
 
 # Jon's extra stuff to write the event to a log file.
 sub writeaccesslog {
-    my $cache_status = shift;
-    my $filename = shift;
-    my $client = shift;
+	my $cache_status = shift;
+	my $filename = shift;
+	my $client = shift;
 
-    # The format is 'time|cache status (HIT, MISS or EXPIRED)|client IP address|file size|name of requested file'
-    my $time = localtime;
-    my $file_length = -s $cached_file;
+# The format is 'time|cache status (HIT, MISS or EXPIRED)|client IP address|file size|name of requested file'
+	my $time = localtime;
+	my $file_length = -s $cached_file;
 
-    flock($aclog_fh, LOCK_EX);
-    print $aclog_fh "$time|$$|$client|$cache_status|$file_length|$filename\n";
-    flock($aclog_fh, LOCK_UN);
+	flock($aclog_fh, LOCK_EX);
+	print $aclog_fh "$time|$$|$client|$cache_status|$file_length|$filename\n";
+	flock($aclog_fh, LOCK_UN);
 }
 
 # Jon's extra stuff to write errors to a log file.
 sub writeerrorlog {
-    my $message = shift;
+	my $message = shift;
 
-    my $time = localtime;
+	my $time = localtime;
 
-    # Prevent double newline
-    chomp $message;
+# Prevent double newline
+	chomp $message;
 
-    if (!defined $erlog_fh) {
-	print STDERR "$message\n"; # Better than nothing
-	return;
-    }
-    flock($erlog_fh, LOCK_EX);
-    # files may need to be reopened sometimes - reason unknown yet, EBADF
-    # results
-    syswrite($erlog_fh,"$time|$message\n") || &open_log_files;
-    flock($erlog_fh, LOCK_UN);
+	if (!defined $erlog_fh) {
+		print STDERR "$message\n"; # Better than nothing
+		return;
+	}
+	flock($erlog_fh, LOCK_EX);
+	# files may need to be reopened sometimes - reason unknown yet, EBADF
+	# results
+	syswrite($erlog_fh,"$time|$message\n") || &open_log_files;
+	flock($erlog_fh, LOCK_UN);
 }
 
 # Stuff to append debug messages to the error log.
 sub debug_message {
-    if ($cfg->{debug}) {
-	my $message = shift;
-	&writeerrorlog("debug [$$]: $message");
-    }
+	if ($cfg->{debug}) {
+		my $message = shift;
+		&writeerrorlog("debug [$$]: $message");
+	}
 }
 
 sub info_message {
-    my $message = shift;
-    writeerrorlog("info [$$]: $message");
+	my $message = shift;
+	writeerrorlog("info [$$]: $message");
 }
 
 sub open_log_files {
-    my $logfile = "$cfg->{logdir}/access.log";
-    my $errorfile = "$cfg->{logdir}/error.log";
+	my $logfile = "$cfg->{logdir}/access.log";
+	my $errorfile = "$cfg->{logdir}/error.log";
 
-    if(!$erlog_fh) {
-	open($erlog_fh,">>$errorfile") or barf("Unable to open $errorfile, $!");
-    }
-    if(!$aclog_fh) {
-	open($aclog_fh,">>$logfile") or barf("Unable to open $logfile, $!");
-    }
-    # Install signal handlers to capture error messages
-    $SIG{__WARN__} = sub {writeerrorlog("warn [$$]: ".shift)};
-    $SIG{__DIE__} = sub {writeerrorlog("error [$$]: ".shift)};
+	if (!$erlog_fh) {
+		open($erlog_fh,">>$errorfile") or barf("Unable to open $errorfile, $!");
+	}
+	if (!$aclog_fh) {
+		open($aclog_fh,">>$logfile") or barf("Unable to open $logfile, $!");
+	}
+	# Install signal handlers to capture error messages
+	$SIG{__WARN__} = sub {writeerrorlog("warn [$$]: ".shift)};
+	$SIG{__DIE__} = sub {writeerrorlog("error [$$]: ".shift)};
 }
 
 sub get_abort_time () {
-    return time () + $cfg->{fetch_timeout}; # five minutes from now
+	return time () + $cfg->{fetch_timeout}; # five minutes from now
 }
 
 sub head_callback {
-    my $chunk = $_[0];
-    my $response = ${$_[1][0]};
-    my $write = $_[1][1];
+	my $chunk = $_[0];
+	my $response = ${$_[1][0]};
+	my $write = $_[1][1];
 
-  SWITCH:
-    for ($chunk) {
-	/^HTTP/ && do {
-	    my ($proto,$code,$mess) = split(/ /, $chunk, 3);
-	    $response->protocol($proto);
-	    $response->code($code);
-	    $response->message($mess);
-	    last SWITCH;
-	};
-	/^\S+: \S+/ && do {
-	    # debug_message("Got header $chunk\n");
-	    $response->headers->push_header(split /: /, $chunk);
-	    last SWITCH;
-	};
-	/^\r\n$/ && do {
-	    debug_message("libcurl download of headers complete");	
-	    &write_header(\$response) if $write;
-	    last SWITCH;
-	};
-	info_message("Warning, unrecognised line in head_callback: $chunk");
-    }
-    return length($chunk); # OK
+	SWITCH:
+	for ($chunk) {
+		/^HTTP/ && do {
+			my ($proto,$code,$mess) = split(/ /, $chunk, 3);
+			$response->protocol($proto);
+			$response->code($code);
+			$response->message($mess);
+			last SWITCH;
+		};
+		/^\S+: \S+/ && do {
+			# debug_message("Got header $chunk\n");
+			$response->headers->push_header(split /: /, $chunk);
+			last SWITCH;
+		};
+		/^\r\n$/ && do {
+			debug_message("libcurl download of headers complete");	
+			&write_header(\$response) if $write;
+			last SWITCH;
+		};
+		info_message("Warning, unrecognised line in head_callback: $chunk");
+	}
+	return length($chunk); # OK
 }
 
 # Arg is ref to HTTP::Response
 sub write_header {
-    &set_global_lock(": libcurl, storing the header to $cached_head");
-    open (my $chfd, ">$cached_head") || barf("Unable to open $cached_head, $!");
-    print $chfd ${$_[0]}->as_string;
-    close($chfd);
-    &release_global_lock;
+	&set_global_lock(": libcurl, storing the header to $cached_head");
+	open (my $chfd, ">$cached_head") || barf("Unable to open $cached_head, $!");
+	print $chfd ${$_[0]}->as_string;
+	close($chfd);
+	&release_global_lock;
 }
 
 sub body_callback {
-    my ($chunk, $handle) = @_;
+	my ($chunk, $handle) = @_;
 
-    # debug_message("Body callback got ".length($chunk)." bytes for $handle\n");
-    print $handle $chunk || return -1;
+	# debug_message("Body callback got ".length($chunk)." bytes for $handle\n");
+	print $handle $chunk || return -1;
 
-    return length($chunk); # OK
+	return length($chunk); # OK
 }
 
 sub debug_callback {
-    my ($data, undef, $type) = @_;
-    writeerrorlog "debug CURLINFO_"
-      .('TEXT','HEADER_IN','HEADER_OUT','DATA_IN','DATA_OUT','SSL_DATA_IN','SSL_DATA_OUT')[$type]
-	." [$$]: $data" if ($type < $cfg->{debug});
+	my ($data, undef, $type) = @_;
+	writeerrorlog "debug CURLINFO_"
+		.('TEXT','HEADER_IN','HEADER_OUT','DATA_IN','DATA_OUT','SSL_DATA_IN','SSL_DATA_OUT')[$type]
+		." [$$]: $data" if ($type < $cfg->{debug});
 }
 
 {
-    my $curl; # Make static
-    sub setup_curl {
+	my $curl; # Make static
+	sub setup_curl {
 
-	return \$curl if(defined($curl));
-	
-	debug_message('Init new libcurl object');
-	$curl=new WWW::Curl::Easy;
+		return \$curl if (defined($curl));
+		
+		debug_message('Init new libcurl object');
+		$curl=new WWW::Curl::Easy;
 
-	# General
-	$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version ".$curl->version);
-	$curl->setopt(CURLOPT_NOPROGRESS, 1);
-	$curl->setopt(CURLOPT_CONNECTTIMEOUT, 60);
-	$curl->setopt(CURLOPT_NOSIGNAL, 1);
-	$curl->setopt(CURLOPT_LOW_SPEED_LIMIT, 0);
-	$curl->setopt(CURLOPT_LOW_SPEED_TIME, $cfg->{fetch_timeout});
-	$curl->setopt(CURLOPT_INTERFACE, $cfg->{use_interface}) if defined $cfg->{use_interface};
+		# General
+		$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version ".$curl->version);
+		$curl->setopt(CURLOPT_NOPROGRESS, 1);
+		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 60);
+		$curl->setopt(CURLOPT_NOSIGNAL, 1);
+		$curl->setopt(CURLOPT_LOW_SPEED_LIMIT, 0);
+		$curl->setopt(CURLOPT_LOW_SPEED_TIME, $cfg->{fetch_timeout});
+		$curl->setopt(CURLOPT_INTERFACE, $cfg->{use_interface}) if defined $cfg->{use_interface};
 
-	# Callbacks
-	$curl->setopt(CURLOPT_WRITEFUNCTION, \&body_callback);
-	$curl->setopt(CURLOPT_HEADERFUNCTION, \&head_callback);
-	$curl->setopt(CURLOPT_DEBUGFUNCTION, \&debug_callback);
-	$curl->setopt(CURLOPT_VERBOSE, $cfg->{debug});
+		# Callbacks
+		$curl->setopt(CURLOPT_WRITEFUNCTION, \&body_callback);
+		$curl->setopt(CURLOPT_HEADERFUNCTION, \&head_callback);
+		$curl->setopt(CURLOPT_DEBUGFUNCTION, \&debug_callback);
+		$curl->setopt(CURLOPT_VERBOSE, $cfg->{debug});
 
-	# Proxy
-	$curl->setopt(CURLOPT_PROXY, $cfg->{http_proxy})
-	  if ($cfg->{use_proxy} && $cfg->{http_proxy});
-	$curl->setopt(CURLOPT_PROXYUSERPWD, $cfg->{http_proxy_auth})
-	  if ($cfg->{use_proxy_auth});
-	
-	# Rate limit support
-	my $maxspeed;
-	for ($cfg->{limit}) {
-	    /^\d+$/ && do { $maxspeed = $_; last; };
-	    /^(\d+)k$/ && do { $maxspeed = $1 * 1024; last; };
-	    /^(\d+)m$/ && do { $maxspeed = $1 * 1048576; last; };
-	    warn "Unrecognised limit: $_. Ignoring.";
+		# Proxy
+		$curl->setopt(CURLOPT_PROXY, $cfg->{http_proxy})
+			if ($cfg->{use_proxy} && $cfg->{http_proxy});
+		$curl->setopt(CURLOPT_PROXYUSERPWD, $cfg->{http_proxy_auth})
+			if ($cfg->{use_proxy_auth});
+		
+		# Rate limit support
+		my $maxspeed;
+		for ($cfg->{limit}) {
+			/^\d+$/ && do { $maxspeed = $_; last; };
+			/^(\d+)k$/ && do { $maxspeed = $1 * 1024; last; };
+			/^(\d+)m$/ && do { $maxspeed = $1 * 1048576; last; };
+			warn "Unrecognised limit: $_. Ignoring.";
+		}
+		if ($maxspeed) {
+			debug_message("Setting bandwidth limit to $maxspeed");
+			$curl->setopt(CURLOPT_MAX_RECV_SPEED_LARGE, $maxspeed);
+		}
+
+		return \$curl;
 	}
-	if ($maxspeed) {
-	    debug_message("Setting bandwidth limit to $maxspeed");
-	    $curl->setopt(CURLOPT_MAX_RECV_SPEED_LARGE, $maxspeed);
-	}
-
-	return \$curl;
-    }
 }
 
 # runs the get or head operations on the user agent
 sub libcurl {
-    my ($vhost, $uri, $pkfdref) = @_;
+	my ($vhost, $uri, $pkfdref) = @_;
 
-    my $url="http://$vhost$uri";
-    my $curl = ${&setup_curl};
+	my $url="http://$vhost$uri";
+	my $curl = ${&setup_curl};
 
-    my $do_hopping = (exists $pathmap{$vhost});
-    my $hostcand;
+	my $do_hopping = (exists $pathmap{$vhost});
+	my $hostcand;
 
-  RETRY_ACTION:
-    my $response = new HTTP::Response;
+RETRY_ACTION:
+	my $response = new HTTP::Response;
 
-    # make the virtual hosts real. The list is reduced which is not so smart,
-    # but since the fetcher process dies anyway it does not matter.
-    if($do_hopping) {
-	$hostcand = shift(@{$pathmap{$vhost}});
-	debug_message("Candidate: $hostcand");
-	$url=($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
-    }
-
-  RETRY_REDIRECT:
-    if(!$pkfdref) {
-	debug_message ('download agent: setting up for HEAD request');
-	$curl->setopt(CURLOPT_NOBODY,1);
-    }
-    else {
-	debug_message ('download agent: setting up for GET request');
-	$curl->setopt(CURLOPT_HTTPGET,1);
-	$curl->setopt(CURLOPT_FILE, $$pkfdref);
-    }
-
-    push @cache_control, 'Pragma:' if ! grep /^Pragma:/, @cache_control; # Override libcurl default.
-    $curl->setopt(CURLOPT_HTTPHEADER, \@cache_control);				
-    $curl->setopt(CURLOPT_WRITEHEADER, [\$response, ($pkfdref ? 1 : 0)]);
-    $curl->setopt(CURLOPT_URL, $url);
-
-    debug_message("download agent: getting $url");
-
-    if($curl->perform) { # error
-	$response=HTTP::Response->new(502);
-	$response->protocol('HTTP/1.1');
-	$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
-	info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
-	write_header(\$response); # Replace with error header
-    }
-    $response->request($url);
-
-    if ($response->is_redirect()) {
-    	# It is a redirect
-	info_message('libcurl got redirect for '.$url);
-
-	$url = $response->header("Location");
-	info_message('Redirecting to '.$url);
-	$response = new HTTP::Response;
-	if($pkfdref) {
-	    truncate($$pkfdref, 0);
-	    sysseek($$pkfdref, 0, 0);
+	# make the virtual hosts real. The list is reduced which is not so smart,
+	# but since the fetcher process dies anyway it does not matter.
+	if ($do_hopping) {
+		$hostcand = shift(@{$pathmap{$vhost}});
+		debug_message("Candidate: $hostcand");
+		$url=($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
 	}
-	unlink($complete_file);
-	unlink($cached_head);
-	goto RETRY_REDIRECT;
-    }
 
-    if($do_hopping) {
-	# if okay or the last candidate fails, put it back into the list
-	if($response->is_success || ! @{$pathmap{$vhost}} ) {
-	    unshift(@{$pathmap{$vhost}}, $hostcand);
+RETRY_REDIRECT:
+	if (!$pkfdref) {
+		debug_message ('download agent: setting up for HEAD request');
+		$curl->setopt(CURLOPT_NOBODY,1);
+	} else {
+		debug_message ('download agent: setting up for GET request');
+		$curl->setopt(CURLOPT_HTTPGET,1);
+		$curl->setopt(CURLOPT_FILE, $$pkfdref);
 	}
-	else {
-	    # truncate cached_file to remove previous HTTP error
-	    if ($pkfdref) {
-		truncate($$pkfdref, 0);
-		sysseek($$pkfdref, 0, 0);
-	    }
-	    goto RETRY_ACTION;
-	}
-    }
 
-    return \$response;
+	push @cache_control, 'Pragma:' if ! grep /^Pragma:/, @cache_control; # Override libcurl default.
+	$curl->setopt(CURLOPT_HTTPHEADER, \@cache_control);				
+	$curl->setopt(CURLOPT_WRITEHEADER, [\$response, ($pkfdref ? 1 : 0)]);
+	$curl->setopt(CURLOPT_URL, $url);
+
+	debug_message("download agent: getting $url");
+
+	if ($curl->perform) { # error
+		$response=HTTP::Response->new(502);
+		$response->protocol('HTTP/1.1');
+		$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
+		info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
+		write_header(\$response); # Replace with error header
+	}
+	$response->request($url);
+
+	if ($response->is_redirect()) {
+		# It is a redirect
+		info_message('libcurl got redirect for '.$url);
+
+		$url = $response->header("Location");
+		info_message('Redirecting to '.$url);
+		$response = new HTTP::Response;
+		if ($pkfdref) {
+			truncate($$pkfdref, 0);
+			sysseek($$pkfdref, 0, 0);
+		}
+		unlink($complete_file);
+		unlink($cached_head);
+		goto RETRY_REDIRECT;
+	}
+
+	if ($do_hopping) {
+		# if okay or the last candidate fails, put it back into the list
+		if($response->is_success || ! @{$pathmap{$vhost}} ) {
+			unshift(@{$pathmap{$vhost}}, $hostcand);
+		} else {
+			# truncate cached_file to remove previous HTTP error
+			if ($pkfdref) {
+				truncate($$pkfdref, 0);
+				sysseek($$pkfdref, 0, 0);
+			}
+			goto RETRY_ACTION;
+		}
+	}
+
+	return \$response;
 }
 
 sub fetch_store {
-    my ($host, $uri, $pkfdref) = @_;
-    my $response;
+	my ($host, $uri, $pkfdref) = @_;
+	my $response;
 
-    my $url = "http://$host$uri";
-    debug_message("fetcher: try to fetch $url");
+	my $url = "http://$host$uri";
+	debug_message("fetcher: try to fetch $url");
 
-    # jump from the global lock to a lock on the target file
-    flock($$pkfdref, LOCK_EX) || barf('Unable to lock the target file');
-    &release_global_lock;
-
-    $response = ${&libcurl($host, $uri, $pkfdref)};	
-
-    flock ($$pkfdref, LOCK_UN);
-    close($$pkfdref) || warn "Close $cached_file failed, $!";
-
-    debug_message('libcurl returned');
-
-    if ($response->is_success) {
-	debug_message("stored $url as $cached_file");
-
-	# assuming here that the filesystem really closes the file and writes
-	# it out to disk before creating the complete flag file
-
-	my $sha1sum = `sha1sum $cached_file`;
-
-	if (!$sha1sum) {
-	    barf("Unable to calculate SHA-1 sum for $cached_file - error = $?");
-	}
-
-	($sha1sum) = $sha1sum =~ /([0-9A-Za-z]+) +.*/;
-
-	debug_message("sha1sum $cached_file = $sha1sum");
-
-	&set_global_lock(': link to cache');
-	
-	if (-f "$cfg->{cache_dir}/cache/$filename.$sha1sum") {
-	    unlink($cached_file);
-	    link("$cfg->{cache_dir}/cache/$filename.$sha1sum", $cached_file);
-	} else {
-	    link($cached_file, "$cfg->{cache_dir}/cache/$filename.$sha1sum");
-	}
-
+	# jump from the global lock to a lock on the target file
+	flock($$pkfdref, LOCK_EX) || barf('Unable to lock the target file');
 	&release_global_lock;
 
-	debug_message("setting complete flag for $filename");
-	# Now create the file to show the pickup is complete, also store the original URL there
-	open(MF, ">$complete_file") || die $!;
-	print MF $response->request;
-	close(MF);
-    }
-    elsif(HTTP::Status::is_client_error($response->code)) {
-       	debug_message('Upstream server returned error '.$response->code." for ".$response->request.". Deleting $cached_file.");
-	unlink $cached_file;
-    }
-    debug_message('fetcher done');
-    unlink $notify_file;
+	$response = ${&libcurl($host, $uri, $pkfdref)};	
+
+	flock ($$pkfdref, LOCK_UN);
+	close($$pkfdref) || warn "Close $cached_file failed, $!";
+
+	debug_message('libcurl returned');
+
+    if ($response->is_success) {
+		debug_message("stored $url as $cached_file");
+
+		# assuming here that the filesystem really closes the file and writes
+		# it out to disk before creating the complete flag file
+
+		my $sha1sum = `sha1sum $cached_file`;
+
+		if (!$sha1sum) {
+			barf("Unable to calculate SHA-1 sum for $cached_file - error = $?");
+		}
+
+		($sha1sum) = $sha1sum =~ /([0-9A-Za-z]+) +.*/;
+
+		debug_message("sha1sum $cached_file = $sha1sum");
+
+		&set_global_lock(': link to cache');
+		
+		if (-f "$cfg->{cache_dir}/cache/$filename.$sha1sum") {
+			unlink($cached_file);
+			link("$cfg->{cache_dir}/cache/$filename.$sha1sum", $cached_file);
+		} else {
+			link($cached_file, "$cfg->{cache_dir}/cache/$filename.$sha1sum");
+		}
+
+		&release_global_lock;
+
+		debug_message("setting complete flag for $filename");
+		# Now create the file to show the pickup is complete, also store the original URL there
+		open(MF, ">$complete_file") || die $!;
+		print MF $response->request;
+		close(MF);
+	} elsif(HTTP::Status::is_client_error($response->code)) {
+		debug_message('Upstream server returned error '.$response->code." for ".$response->request.". Deleting $cached_file.");
+		unlink $cached_file;
+	}
+	debug_message('fetcher done');
+	unlink $notify_file;
 }
 
 # FIXME: that sucks. Still needed?!
 sub kill_readers {
-    my $nf;
-    if(open($nf, $notify_file)) {
-	while(<$nf>) {
-	    chomp;
-	    debug_message("Stopping reader: $_");
-	    kill 9, $_; # hard, bypassing the handler
+	my $nf;
+	if (open($nf, $notify_file)) {
+		while(<$nf>) {
+			chomp;
+			debug_message("Stopping reader: $_");
+			kill 9, $_; # hard, bypassing the handler
+		}
+		close($nf);
 	}
-	close($nf);
-    }
-    # should be okay to unlink the file after all readers are "notified"
-    unlink $cached_file;
+	# should be okay to unlink the file after all readers are "notified"
+	unlink $cached_file;
 }
 
 # Check if there has been a usage report generated and display it
 sub usage_report {
-    my $usage_file = "$cfg->{logdir}/report.html";
-    &sendrsp(200, 'OK', 'Content-Type', 'text/html', 'Expires', 0);
-    if (!-f $usage_file) {
-	print $con <<EOF;
+	my $usage_file = "$cfg->{logdir}/report.html";
+	&sendrsp(200, 'OK', 'Content-Type', 'text/html', 'Expires', 0);
+	if (!-f $usage_file) {
+		print $con <<EOF;
 
 <html>
 <title>Pkg-cacher traffic report</title><style type="text/css"><!--
@@ -1534,260 +1431,236 @@ th { font-family: arial, helvetica, sans-serif; font-size: 11pt; font-weight: bo
 		</html>
 EOF
 
-    }
-    else
-      {
-	  open(my $usefile, $usage_file) || die $!;
-	  my @usedata = <$usefile>;
-	  close($usefile);
-	  print $con @usedata;
-      }
+    } else {
+		open(my $usefile, $usage_file) || die $!;
+		my @usedata = <$usefile>;
+		close($usefile);
+		print $con @usedata;
+	}
 }
 
 # IP address filtering.
 sub ipv4_addr_in_list ($$) {
-      return(0) if $_[0] eq '';
-      debug_message ("testing $_[1]");
-      return(0) unless $cfg->{$_[1]};
+	return(0) if $_[0] eq '';
+	debug_message ("testing $_[1]");
+	return(0) unless $cfg->{$_[1]};
 
-      my ($client, $cfitem) = @_;
-      my @allowed_hosts = split(/\s*[;,]\s*/, $cfg->{$cfitem});
-      for my $ahp (@allowed_hosts)
-	{
+	my ($client, $cfitem) = @_;
+	my @allowed_hosts = split(/\s*[;,]\s*/, $cfg->{$cfitem});
+	for my $ahp (@allowed_hosts) {
 	    goto unknown if $ahp !~ /^[-\/,.[:digit:]]+$/;
 
-	    # single host
-	    if ($ahp =~ /^([^-\/]*)$/)
-	      {
-		  my $ip = $1;
-		  debug_message("checking against $ip");
-		  defined ($ip = ipv4_normalise($ip)) or goto unknown;
-		  return(1) if $ip eq $client;
-	      }
-	    # range of hosts (netmask)
-	    elsif ($ahp =~ /^([^-\/]*)\/([^-\/]*)$/)
-	      {
-		  my ($base, $mask) = ($1, $2);
-		  debug_message("checking against $ahp");
-		  defined ($base = ipv4_normalise($base)) or goto unknown;
-		  $mask = ($mask =~ /^\d+$/) ? make_mask ($mask, 32)
-		    : ipv4_normalise ($mask);
-		  goto unknown unless defined $mask;
-		  return(1) if ($client & $mask) eq ($base & $mask);
-	      }
-	    # range of hosts (start & end)
-	    elsif ($ahp =~ /^([^-\/]*)-([^-\/]*)$/)
-	      {
-		  my ($start, $end) = ($1, $2);
-		  debug_message("checking against $start to $end");
-		  defined ($start = ipv4_normalise($start)) or goto unknown;
-		  defined ($end = ipv4_normalise($end)) or goto unknown;
-		  return(1) if $client ge $start && $client le $end;
-	      }
-	    # unknown
-	    else
-	      {
+	    if ($ahp =~ /^([^-\/]*)$/) {
+			# single host
+			my $ip = $1;
+			debug_message("checking against $ip");
+			defined ($ip = ipv4_normalise($ip)) or goto unknown;
+			return(1) if $ip eq $client;
+		} elsif ($ahp =~ /^([^-\/]*)\/([^-\/]*)$/) {
+			# range of hosts (netmask)
+			my ($base, $mask) = ($1, $2);
+			debug_message("checking against $ahp");
+			defined ($base = ipv4_normalise($base)) or goto unknown;
+			$mask = ($mask =~ /^\d+$/) ? make_mask ($mask, 32)
+				: ipv4_normalise ($mask);
+			goto unknown unless defined $mask;
+			return(1) if ($client & $mask) eq ($base & $mask);
+		} elsif ($ahp =~ /^([^-\/]*)-([^-\/]*)$/) {
+			# range of hosts (start & end)
+			my ($start, $end) = ($1, $2);
+			debug_message("checking against $start to $end");
+			defined ($start = ipv4_normalise($start)) or goto unknown;
+			defined ($end = ipv4_normalise($end)) or goto unknown;
+			return(1) if $client ge $start && $client le $end;
+		} else {
+			# unknown
 		unknown:
-		  debug_message("Alert: $cfitem ($ahp) is bad");
-		  &sendrsp(500, 'Configuration error');
-		  exit(4);
-	      }
+			debug_message("Alert: $cfitem ($ahp) is bad");
+			&sendrsp(500, 'Configuration error');
+			exit(4);
+		}
 	}
-      return(0); # failed
+	return(0); # failed
 }
 
 sub ipv6_addr_in_list ($$) {
-    return(0) if $_[0] eq '';
-    debug_message ("testing $_[1]");
-    return(0) unless $cfg->{$_[1]};
+	return(0) if $_[0] eq '';
+	debug_message ("testing $_[1]");
+	return(0) unless $cfg->{$_[1]};
 
-    my ($client, $cfitem) = @_;
-    my @allowed_hosts = split(/\s*[;,]\s*/, $cfg->{$cfitem});
-    for my $ahp (@allowed_hosts)
-      {
-	  goto unknown if $ahp !~ /^[-\/,:[:xdigit:]]+$/;
+	my ($client, $cfitem) = @_;
+	my @allowed_hosts = split(/\s*[;,]\s*/, $cfg->{$cfitem});
+	for my $ahp (@allowed_hosts) {
+		goto unknown if $ahp !~ /^[-\/,:[:xdigit:]]+$/;
 
-	  # single host
-	  if ($ahp =~ /^([^-\/]*)$/)
-	    {
-		my $ip = $1;
-		debug_message("checking against $ip");
-		$ip = ipv6_normalise($ip);
-		goto unknown if $ip eq '';
-		return(1) if $ip eq $client;
-	    }
-	  # range of hosts (netmask)
-	  elsif ($ahp =~ /^([^-\/]*)\/([^-\/]*)$/)
-	    {
-		my ($base, $mask) = ($1, $2);
-		debug_message("checking against $ahp");
-		$base = ipv6_normalise($base);
-		goto unknown if $base eq '';
-		goto unknown if $mask !~ /^\d+$/ || $mask < 0 || $mask > 128;
-		my $m = ("\xFF" x ($mask / 8));
-		$m .= chr ((-1 << (8 - $mask % 8)) & 255) if $mask % 8;
-		$mask = $m . ("\0" x (16 - length ($m)));
-		return(1) if ($client & $mask) eq ($base & $mask);
-	    }
-	  # range of hosts (start & end)
-	  elsif ($ahp =~ /^([^-\/]*)-([^-\/]*)$/)
-	    {
-		my ($start, $end) = ($1, $2);
-		debug_message("checking against $start to $end");
-		$start = ipv6_normalise($start);
-		$end = ipv6_normalise($end);
-		goto unknown if $start eq '' || $end eq '';
-		return(1) if $client ge $start && $client le $end;
-	    }
-	  # unknown
-	  else
-	    {
-	      unknown:
-		debug_message("Alert: $cfitem ($ahp) is bad");
-		&sendrsp(500, 'Configuration error');
-		exit(4);
-	    }
-      }
-    return(0); # failed
+		if ($ahp =~ /^([^-\/]*)$/) {
+			# single host
+			my $ip = $1;
+			debug_message("checking against $ip");
+			$ip = ipv6_normalise($ip);
+			goto unknown if $ip eq '';
+			return(1) if $ip eq $client;
+		} elsif ($ahp =~ /^([^-\/]*)\/([^-\/]*)$/) {
+			# range of hosts (netmask)
+			my ($base, $mask) = ($1, $2);
+			debug_message("checking against $ahp");
+			$base = ipv6_normalise($base);
+			goto unknown if $base eq '';
+			goto unknown if $mask !~ /^\d+$/ || $mask < 0 || $mask > 128;
+			my $m = ("\xFF" x ($mask / 8));
+			$m .= chr ((-1 << (8 - $mask % 8)) & 255) if $mask % 8;
+			$mask = $m . ("\0" x (16 - length ($m)));
+			return(1) if ($client & $mask) eq ($base & $mask);
+		} elsif ($ahp =~ /^([^-\/]*)-([^-\/]*)$/) {
+			# range of hosts (start & end)
+			my ($start, $end) = ($1, $2);
+			debug_message("checking against $start to $end");
+			$start = ipv6_normalise($start);
+			$end = ipv6_normalise($end);
+			goto unknown if $start eq '' || $end eq '';
+			return(1) if $client ge $start && $client le $end;
+		} else {
+			# unknown
+		unknown:
+			debug_message("Alert: $cfitem ($ahp) is bad");
+			&sendrsp(500, 'Configuration error');
+			exit(4);
+		}
+	}
+	return(0); # failed
 }
 
 sub sendrsp {
-    my $code=shift;
-    my $msg=shift;
-    $msg='' if !defined($msg);
+	my $code=shift;
+	my $msg=shift;
+	$msg='' if !defined($msg);
 
-    my $initmsg=
-    ($mode eq 'cgi') ?
-    "Status: $code $msg\r\n" :
-    "HTTP/1.1 $code $msg\r\n";
+	my $initmsg = ($mode eq 'cgi') ?
+		"Status: $code $msg\r\n" :
+		"HTTP/1.1 $code $msg\r\n";
 
-    $initmsg.="Connection: Keep-Alive\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=15, max=100\r\n" if ($code != 403);
+	$initmsg.="Connection: Keep-Alive\r\nAccept-Ranges: bytes\r\nKeep-Alive: timeout=15, max=100\r\n" if ($code != 403);
 
-    #debug_message("Sending Response: $initmsg");
-    print $con $initmsg;
+	#debug_message("Sending Response: $initmsg");
+	print $con $initmsg;
 
-    my $altbit=0;
-    for(@_) {
-	$altbit=!$altbit;
-	if($altbit) {
-	    #debug_message("$_: ");
-	    print $con "$_: ";
+	my $altbit=0;
+	for (@_) {
+		$altbit=!$altbit;
+		if ($altbit) {
+			#debug_message("$_: ");
+			print $con "$_: ";
+		} else {
+			#debug_message("$_\r\n");
+			print $con "$_\r\n";
+		}
 	}
-	else {
-	    #debug_message("$_\r\n");
-	    print $con "$_\r\n";
-	}
-    }
-    print $con "\r\n";
+	print $con "\r\n";
 }
 
 # DOS attack safe input reader
 my @reqLineBuf;
 my $reqTail;
 sub getRequestLine {
-    # if executed through a CGI wrapper setting a flag variable
-    if($ENV{CGI_MODE})
-      {
-	  my $cgi_path;
-	  # pick up the URL
-	  $cgi_path=$ENV{PATH_INFO} if ! $cgi_path;
-	  $cgi_path=$ENV{QUERY_STRING} if ! $cgi_path;
-	  $cgi_path='/' if ! $cgi_path; # set an invalid path to display infos below
+	# if executed through a CGI wrapper setting a flag variable
+	if ($ENV{CGI_MODE}) {
+		my $cgi_path;
+		# pick up the URL
+		$cgi_path=$ENV{PATH_INFO} if ! $cgi_path;
+		$cgi_path=$ENV{QUERY_STRING} if ! $cgi_path;
+		$cgi_path='/' if ! $cgi_path; # set an invalid path to display infos below
 
-	  push(@reqLineBuf, "GET $cgi_path", '', undef); # undef stops operation
-	  undef $cgi_path; # don't re-add it
-    }
-    if(! @reqLineBuf) {
-	my $buf='';
-
-	# after every read at least one line MUST have been found. Read length
-	# is large enough.
-
-	my $n=sysread($source, $buf, 1024);
-	$buf=$reqTail.$buf if(defined($reqTail));
-	undef $reqTail;
-
-	# pushes the lines found into the buffer. The last one may be incomplete,
-	# extra handling below
-	push(@reqLineBuf, split(/\r\n/, $buf, 1000) );
-
-	# buf did not end in a line terminator so the last line is an incomplete
-	# chunk. Does also work if \r and \n are separated
-	if(substr($buf, -2) ne "\r\n") {
-	    $reqTail=pop(@reqLineBuf);
+		push(@reqLineBuf, "GET $cgi_path", '', undef); # undef stops operation
+		undef $cgi_path; # don't re-add it
 	}
-    }
-    return shift(@reqLineBuf);
+	if (!@reqLineBuf) {
+		my $buf='';
+
+		# after every read at least one line MUST have been found. Read length
+		# is large enough.
+
+		my $n=sysread($source, $buf, 1024);
+		$buf=$reqTail.$buf if(defined($reqTail));
+		undef $reqTail;
+
+		# pushes the lines found into the buffer. The last one may be incomplete,
+		# extra handling below
+		push(@reqLineBuf, split(/\r\n/, $buf, 1000) );
+
+		# buf did not end in a line terminator so the last line is an incomplete
+		# chunk. Does also work if \r and \n are separated
+		if (substr($buf, -2) ne "\r\n") {
+			$reqTail=pop(@reqLineBuf);
+		}
+	}
+	return shift(@reqLineBuf);
 }
 
 sub get_inetd_port {
-    # Does not handle multiple entries
-    # I don't know how to find which one would be correct
-    my $inetdconf = '/etc/inetd.conf';
-    my $xinetdconf = '/etc/xinetd.conf';
-    my $xinetdconfdir = '/etc/xinetd.d';
-    my $port;
+	# Does not handle multiple entries
+	# I don't know how to find which one would be correct
+	my $inetdconf = '/etc/inetd.conf';
+	my $xinetdconf = '/etc/xinetd.conf';
+	my $xinetdconfdir = '/etc/xinetd.d';
+	my $port;
 
-    if (-f $inetdconf && -f '/var/run/inetd.pid') {
-	open(FILE, $inetdconf) || do {
-	    info_message("Warning: Cannot open $inetdconf, $!");
-	    return;
-	    };
-	while (<FILE>) {
-	    next if /^(?:#|$)/; # Weed comments and empty lines
-	    if (/^\s*(\S+)\s+.*pkg-cacher/) {
-		$port = $1;
-		last;
-	    }
-	}
-	close (FILE);
-	info_message("Warning: no pkg-cacher port found in $inetdconf") if !$port;
-    }
-    elsif ( -f '/var/run/xinetd.pid' && -f $xinetdconfdir || -f $xinetdconf ) {
-	my $ident;
-	my $found;
-      FILE:
-	for ($xinetdconf, <$xinetdconfdir/*>) {
-	    open(FILE, $_) || do {
-		info_message("Warning: Cannot open $_, $!"); next;
-	    };
-	  LINE:
-	    while (<FILE>) {
-		next LINE if /^(?:#|$)/; # Weed comments and empty lines
-		if (/^\s*service\s+(\S+)/) {
-		    $ident = $1;
-		    next LINE;
+	if (-f $inetdconf && -f '/var/run/inetd.pid') {
+		open(FILE, $inetdconf) || do {
+			info_message("Warning: Cannot open $inetdconf, $!");
+			return;
+		};
+		while (<FILE>) {
+			next if /^(?:#|$)/; # Weed comments and empty lines
+			if (/^\s*(\S+)\s+.*pkg-cacher/) {
+				$port = $1;
+				last;
+			}
 		}
-		$found += /^\s+server(?:_args)?\s*=.*pkg-cacher/;
-		if (/^\s+port\s*=\s*(\d+)/) {
-		    $ident = $1;
+		close (FILE);
+		info_message("Warning: no pkg-cacher port found in $inetdconf") if !$port;
+	} elsif ( -f '/var/run/xinetd.pid' && -f $xinetdconfdir || -f $xinetdconf ) {
+		my $ident;
+		my $found;
+		FILE:
+		for ($xinetdconf, <$xinetdconfdir/*>) {
+			open(FILE, $_) || do {
+				info_message("Warning: Cannot open $_, $!"); next;
+			};
+			LINE:
+			while (<FILE>) {
+				next LINE if /^(?:#|$)/; # Weed comments and empty lines
+				if (/^\s*service\s+(\S+)/) {
+					$ident = $1;
+					next LINE;
+				}
+				$found += /^\s+server(?:_args)?\s*=.*pkg-cacher/;
+				if (/^\s+port\s*=\s*(\d+)/) {
+					$ident = $1;
+				}
+			}
+			close (FILE);
+			if ($found) {
+				$port = $ident;
+				debug_message("Found inetd port match $port");
+				last FILE;
+			}
 		}
-	    }
-	    close (FILE);
-	    if ($found) {
-		$port = $ident;
-		debug_message("Found inetd port match $port");
-		last FILE;
-	    }
+		info_message("Warning: no pkg-cacher port found in $xinetdconf") if !$found;
+	} else {
+		info_message('Warning: no running inetd server found');
 	}
-	info_message("Warning: no pkg-cacher port found in $xinetdconf") if !$found;
-    }
-    else {
-	info_message('Warning: no running inetd server found');
-    }
-    return $port;
+	return $port;
 }
 
 sub io_socket_inet46 {
-    # Test if IPv6 is available and use if it is
-    if (eval{require IO::Socket::INET6}){
-	import IO::Socket::INET6;
-	debug_message('Using IPv6');
-	return  IO::Socket::INET6->new(@_);
-    }
-    else {
-	return IO::Socket::INET->new(@_);
-    }
+	# Test if IPv6 is available and use if it is
+	if (eval{require IO::Socket::INET6}) {
+		import IO::Socket::INET6;
+		debug_message('Using IPv6');
+		return  IO::Socket::INET6->new(@_);
+	} else {
+		return IO::Socket::INET->new(@_);
+	}
 }
 
 # BEGIN MAIN PART
@@ -1806,114 +1679,114 @@ $SIG{USR1} = \&toggle_debug;
 $SIG{PIPE} = sub {debug_message "Got SIGPIPE!"};
 
 
-if($mode eq 'cgi' && defined($cfg->{cgi_advise_to_use}) && $cfg->{cgi_advise_to_use}) {
-    print "Status: 410 $cfg->{cgi_advise_to_use}\r\n\r\n";
-    exit(0);
+if ($mode eq 'cgi' && defined($cfg->{cgi_advise_to_use}) && $cfg->{cgi_advise_to_use}) {
+	print "Status: 410 $cfg->{cgi_advise_to_use}\r\n\r\n";
+	exit(0);
 }
 
-if($mode) {
-    open (STDERR, '>/dev/null') || die $!;
-    &setup_ownership;
-    &open_log_files;
-    &handle_connection;
-    exit(0);
+if ($mode) {
+	open (STDERR, '>/dev/null') || die $!;
+	&setup_ownership;
+	&open_log_files;
+	&handle_connection;
+	exit(0);
 }
 
 $server_pid=$$;
 
 for my $daemon_addr ($cfg->{daemon_addr} ?
-		     (grep !/^\s*$/, # Weed empty or just whitespace
-		      (split /\s*[,;]\s*/, $cfg->{daemon_addr})) :
-		     undef # ensure run once
-		    ) {
+		(grep !/^\s*$/, # Weed empty or just whitespace
+			(split /\s*[,;]\s*/, $cfg->{daemon_addr})) :
+		undef # ensure run once
+		) {
 
-    my $daemon;
-    my %daemonopts = (LocalPort => $cfg->{daemon_port},
-		      Proto => 'tcp',
-		      Listen => 1,
-		      ReuseAddr => 1);
-    $daemonopts{LocalAddr}=$daemon_addr if(defined($daemon_addr));
+	my $daemon;
+	my %daemonopts = (LocalPort => $cfg->{daemon_port},
+				Proto => 'tcp',
+				Listen => 1,
+				ReuseAddr => 1);
+	$daemonopts{LocalAddr}=$daemon_addr if(defined($daemon_addr));
 
-    my $retnum = $cfg->{retry};
-    while(1) {
-	$daemon = io_socket_inet46(%daemonopts);
-	last if $daemon;
-	$retnum--;
-	last if($retnum<=0);
-	print STDERR "Unable to bind socket ($daemon_addr port $cfg->{daemon_port}), trying again in 5 seconds.\n";
-	sleep 5;
-    }
-    die "Unable to bind socket ($daemon_addr port $cfg->{daemon_port}), $0 not started.\n" if ! $daemon;
-    push @daemons, $daemon;
-
-    my $last;
-    if (!$daemon_addr ||
-	$cfg->{daemon_addr} =~ /$daemon_addr[\s,;]*$/) { # last, empty or only address
-	$last=1;
-	goto NO_FORK unless $cfg->{fork};
-    }
-    debug_message "fork listener $daemon_addr\n";
-    my $pid = fork(); # for each daemon_addr
-    if ($pid <0) {
-	barf('fork() failed');
-    }
-    if ($pid > 0) {
-	# parent
-	push @childPids, $pid;
-	next;
-    }
-    # child
-    undef @childPids;
-
-    {
-	no warnings 'io'; # Silence the reopen warning
-	close (STDIN);
-	open (STDOUT, '>/dev/null') || die $!;
-	open (STDERR, '>/dev/null') || die $!;
-    }
-
-  NO_FORK:
-    if($cfg->{pidfile} && $last) {
-	open(my $fh, ">$cfg->{pidfile}") || die "Unable to open $cfg->{pidfile}, $!";
-	print $fh $$;
-	close($fh);
-    }
-	
-    &setup_ownership;
-    &open_log_files;
-
-    # State: READY
-    # That is the working condition (daemon mode)
-
-    debug_message("Pkg-Cacher version $version started with Debug output enabled, accepting connections on " . $daemon->sockhost . ':' . $daemon->sockport);
-
-    while (1) {
-
-	my $newcon = $daemon->accept;
-	# we don't stop, only by term_handler since the accept method is unreliable
-	next if(!$newcon);
-	last if $terminating;
-
-	debug_message('Connection from '.$newcon->peerhost);
-
-	my $pid = fork();
-	if ($pid < 0) {
-	    barf('fork() failed');
+	my $retnum = $cfg->{retry};
+	while (1) {
+		$daemon = io_socket_inet46(%daemonopts);
+		last if $daemon;
+		$retnum--;
+		last if($retnum<=0);
+		print STDERR "Unable to bind socket ($daemon_addr port $cfg->{daemon_port}), trying again in 5 seconds.\n";
+		sleep 5;
 	}
+	die "Unable to bind socket ($daemon_addr port $cfg->{daemon_port}), $0 not started.\n" if ! $daemon;
+	push @daemons, $daemon;
 
+	my $last;
+	if (!$daemon_addr ||
+		$cfg->{daemon_addr} =~ /$daemon_addr[\s,;]*$/) { # last, empty or only address
+		$last=1;
+		goto NO_FORK unless $cfg->{fork};
+	}
+	debug_message "fork listener $daemon_addr\n";
+	my $pid = fork(); # for each daemon_addr
+	if ($pid <0) {
+		barf('fork() failed');
+	}
 	if ($pid > 0) {
-	    # parent
-	    debug_message("registered child process: $pid");
-	    push @childPids, $pid;
-	    next;
+		# parent
+		push @childPids, $pid;
+		next;
 	}
 	# child
 	undef @childPids;
 
-	&handle_connection($newcon);
-	exit(0);
+	{
+		no warnings 'io'; # Silence the reopen warning
+		close (STDIN);
+		open (STDOUT, '>/dev/null') || die $!;
+		open (STDERR, '>/dev/null') || die $!;
+	}
 
+	NO_FORK:
+	if ($cfg->{pidfile} && $last) {
+		open(my $fh, ">$cfg->{pidfile}") || die "Unable to open $cfg->{pidfile}, $!";
+		print $fh $$;
+		close($fh);
     }
+	
+	&setup_ownership;
+	&open_log_files;
+
+	# State: READY
+	# That is the working condition (daemon mode)
+
+	debug_message("Pkg-Cacher version $version started with Debug output enabled, accepting connections on " . $daemon->sockhost . ':' . $daemon->sockport);
+
+	while (1) {
+
+		my $newcon = $daemon->accept;
+		# we don't stop, only by term_handler since the accept method is unreliable
+		next if (!$newcon);
+		last if $terminating;
+
+		debug_message('Connection from '.$newcon->peerhost);
+
+		my $pid = fork();
+		if ($pid < 0) {
+			barf('fork() failed');
+		}
+
+		if ($pid > 0) {
+			# parent
+			debug_message("registered child process: $pid");
+			push @childPids, $pid;
+			next;
+		}
+		# child
+		undef @childPids;
+
+		&handle_connection($newcon);
+		exit(0);
+
+	}
 }
 
 # exit from the daemon loop
