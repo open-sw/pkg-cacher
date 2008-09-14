@@ -1,8 +1,9 @@
 NAME=pkg-cacher
-VERSION=0.9.3
+VERSION=0.9.3a
 TAROPTS=--directory .. --exclude=.svn --exclude='*.swp' --dereference 
 
-PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-lib.pl \
+PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-request.pl pkg-cacher-fetch.pl \
+			pkg-cacher-lib.pl \
 			pkg-cacher-cleanup.pl pkg-cacher-import.pl \
 			pkg-cacher-precache.pl pkg-cacher-report.pl
 DATA_FILES=index_files.regexp static_files.regexp

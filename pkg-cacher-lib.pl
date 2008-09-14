@@ -14,6 +14,22 @@ use warnings;
 use Fcntl qw/:flock/;
 our $cfg;
 
+sub read_patterns {
+	my $file = $_[0];
+	my @pattern;
+
+	if (open(my $fd, $file)) {
+		LINE: while (<$fd>) {
+			s/#.*$//;
+			s/[\s]+//;
+			next LINE if /^$/;
+			push(@pattern, $_);
+		}
+	}
+
+	return join('|', @pattern);
+}
+
 sub read_config {
     # set the default config variables
     my %config = (

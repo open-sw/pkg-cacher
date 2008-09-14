@@ -9,6 +9,8 @@ Packager: Robert Nelson (robertn at the-nelsons dot org)
 Buildroot: %{_tmppath}/%{name}-%{version}-root
 BuildArch: noarch
 Provides: perl(pkg-cacher-lib.pl)
+Provides: perl(pkg-cacher-request.pl)
+Provides: perl(pkg-cacher-fetch.pl)
 
 %description
 pkg-cacher.pl is a CGI which will keep a cache on disk of Debian Packages and Release files (including .deb files) which have been received from Debian distribution servers on the Internet. When an apt-get client issues a request for a file to pkg-cacher.pl, if the file is already on disk it is served to the client immediately, otherwise it is fetched from the Internet, saved on disk, and then served to the client. This means that several Debian machines can be upgraded but each package need be downloaded only once.
