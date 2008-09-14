@@ -228,8 +228,8 @@ sub fetch_store {
 	my $url = "http://$host$uri";
 	debug_message("fetcher: try to fetch $url");
 
-	sysopen(my $pkfd, $cached_file, O_RDWR|O_CREAT|O_EXCL, 0644)
-		|| barf("Unable to create new $cached_file: $!");
+	sysopen(my $pkfd, $cached_file, O_RDWR)
+		|| barf("Unable to open $cached_file for writing: $!");
 
 	# jump from the global lock to a lock on the target file
 	flock($pkfd, LOCK_EX) || barf('Unable to lock the target file');
