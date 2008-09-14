@@ -1,4 +1,5 @@
 #! /usr/bin/perl
+# vim: ts=4 sw=4 ai si
 # This is a library file for Pkg-cacher to allow code
 # common to Pkg-cacher itself plus its supporting scripts
 # (pkg-cacher-report.pl and pkg-cacher-cleanup.pl) to be
