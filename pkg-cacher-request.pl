@@ -388,7 +388,7 @@ sub handle_connection {
 							}
 						}
 					} else {
-						debug_message('HEAD request error: '.$response->status_line.' Reusing existing file');
+						info_message('HEAD request error: '.$response->status_line.' Reusing existing file');
 						$cache_status = 'OFFLINE';
 					}
 				}
