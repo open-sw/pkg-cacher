@@ -112,8 +112,10 @@ sub debug_callback {
 		# Callbacks
 		$curl->setopt(CURLOPT_WRITEFUNCTION, \&body_callback);
 		$curl->setopt(CURLOPT_HEADERFUNCTION, \&head_callback);
-		$curl->setopt(CURLOPT_DEBUGFUNCTION, \&debug_callback);
-		$curl->setopt(CURLOPT_VERBOSE, $cfg->{debug});
+
+		# Disable this, it causes deadlocks in libcurl on Debian
+		# $curl->setopt(CURLOPT_DEBUGFUNCTION, \&debug_callback);
+		# $curl->setopt(CURLOPT_VERBOSE, $cfg->{debug});
 
 		# Proxy
 		$curl->setopt(CURLOPT_PROXY, $cfg->{http_proxy})

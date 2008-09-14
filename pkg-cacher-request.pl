@@ -479,8 +479,8 @@ sub handle_connection {
 				# child, the fetcher thread
 				undef @childPids;
 				&fetch_store ($host, $uri);	# releases the global lock
-															# after locking the target
-															# file
+											# after locking the target
+											# file
 				exit(0);
 			}
 			# parent continues
