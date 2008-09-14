@@ -113,7 +113,7 @@ sub debug_callback {
 		$curl->setopt(CURLOPT_WRITEFUNCTION, \&body_callback);
 		$curl->setopt(CURLOPT_HEADERFUNCTION, \&head_callback);
 
-		# Disable this, it causes deadlocks in libcurl on Debian
+		# Disable this, it isn't supported on Debian Etch
 		# $curl->setopt(CURLOPT_DEBUGFUNCTION, \&debug_callback);
 		# $curl->setopt(CURLOPT_VERBOSE, $cfg->{debug});
 
