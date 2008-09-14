@@ -1,3 +1,9 @@
+pkg-cacher (0.9.3a) unstable; urgency=low
+
+  * Reorganized file structure.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Sat, 13 Sep 2008 20:08:07 -0700
+
 pkg-cacher (0.9.3) unstable; urgency=low
 
   * Added support for HTTP Redirect.

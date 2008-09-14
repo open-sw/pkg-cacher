@@ -15,7 +15,7 @@ use Fcntl qw/:flock/;
 our $cfg;
 
 sub read_patterns {
-	my $file = $_[0];
+	my $file = '/usr/share/pkg-cacher/'.$_[0];
 	my @pattern;
 
 	if (open(my $fd, $file)) {
