@@ -24,17 +24,16 @@ use Sys::Hostname;
 
 use File::Path;
 
+# Data shared between files
+
 our $cfg;
+our %pathmap;
 
-# Data shared between functions
+our $cached_file;
+our $cached_head;
+our $complete_file;
 
-# Shared by pkg-cacher, pkg-cacher-fetch.pl, pkg-cacher-request.pl
-my $cached_file;
-my $cached_head;
-my $complete_file;
-
-# Shared by pkg-cacher-fetch.pl, pkg-cacher-request.pl
-my @cache_control;
+our @cache_control;
 
 # Subroutines
 
@@ -219,20 +218,12 @@ RETRY_REDIRECT:
 }
 
 sub fetch_store {
-	my ($host, $uri, @cache_control) = @_;
+	my ($host, $uri) = @_;
 	my $response;
 	my $pkfd;
 	my $filename;
 
 	($filename) = ($uri =~ /\/?([^\/]+)$/);
-
-	$cached_file = "$cfg->{cache_dir}/packages/$host$uri";
-	$cached_head = "$cfg->{cache_dir}/headers/$host$uri";
-	$complete_file = "$cfg->{cache_dir}/private/$host$uri.complete";
-
-	foreach $key (keys(%$cfg)) {
-		debug_message("cfg->{$key} = ".$cfg->{$key});
-	}
 
 	my $url = "http://$host$uri";
 	debug_message("fetcher: try to fetch $url");

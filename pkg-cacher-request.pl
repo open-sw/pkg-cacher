@@ -22,26 +22,25 @@ use Sys::Hostname;
 
 use File::Path;
 
-our $cfg;
-
 # Set some defaults
 my $static_files_regexp = '(?:'.read_patterns('static_files.regexp').')$';
 my $source;
 
 my $mode; # cgi|inetd|sa
 my $concloseflag;
+my @childPids;
 
 require 'pkg-cacher-fetch.pl';
 
 # Data shared between files
 
-my $cached_file;
-my $cached_head;
-my $complete_file;
+our $cfg;
 
-my @cache_control;
+our $cached_file;
+our $cached_head;
+our $complete_file;
 
-my @childPids;
+our @cache_control;
 
 # Function prototypes
 sub ipv4_addr_in_list ($$);
@@ -479,7 +478,7 @@ sub handle_connection {
 			if ($pid == 0) {
 				# child, the fetcher thread
 				undef @childPids;
-				&fetch_store ($host, $uri, @cache_control);	# releases the global lock
+				&fetch_store ($host, $uri);	# releases the global lock
 															# after locking the target
 															# file
 				exit(0);
