@@ -1,10 +1,11 @@
-pkg-cacher (0.9.3a) unstable; urgency=low
+pkg-cacher (0.9.4) unstable; urgency=low
 
-  * Reorganized file structure.
-  * Disable curl debugging, it isn't supported in etch version of the
+  * Split into 3 files to ease maintenance prior to changing to multithreaded.
+  * Disable curl debugging, it isn't supported in the Etch version of the
     libwww-curl-perl.
+  * Fix path for reading patterns.
 
- -- Robert Nelson <robertn@the-nelsons.org>  Sat, 13 Sep 2008 20:08:07 -0700
+ -- Robert Nelson <robertn@the-nelsons.org>  Sun, 14 Sep 2008 18:43:23 -0700
 
 pkg-cacher (0.9.3) unstable; urgency=low
 

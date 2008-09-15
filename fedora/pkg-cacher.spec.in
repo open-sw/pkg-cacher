@@ -61,6 +61,11 @@ service pkg-cacher restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Sun Sep 14 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.4
+  - Split into 3 files to ease maintenance prior to changing to multithreaded.
+  - Disable curl debugging, not supported on Debian Etch.
+  - Fix path for reading patterns.
+
 * Fri Sep 12 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.3
   - Add support for HTTP Redirect
   - Made file patterns easily configurable.
