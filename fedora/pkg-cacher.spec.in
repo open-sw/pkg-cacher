@@ -55,7 +55,7 @@ getent passwd pkg-cacher > /dev/null || \
 
 %post
 chkconfig pkg-cacher on
-service pkg-cacher start
+service pkg-cacher restart
 
 %clean
 rm -rf $RPM_BUILD_ROOT
