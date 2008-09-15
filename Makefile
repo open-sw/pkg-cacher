@@ -1,5 +1,5 @@
 NAME=pkg-cacher
-VERSION=0.9.3a
+VERSION=0.9.4
 TAROPTS=--directory .. --exclude=.svn --exclude='*.swp' --dereference 
 
 PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-request.pl pkg-cacher-fetch.pl \
