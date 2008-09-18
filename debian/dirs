@@ -2,5 +2,3 @@ usr/sbin
 usr/share/pkg-cacher
 etc/pkg-cacher
 etc/cron.daily
-var/cache/pkg-cacher
-var/log/pkg-cacher

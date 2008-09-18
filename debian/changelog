@@ -1,3 +1,9 @@
+pkg-cacher (0.9.5) unstable; urgency=low
+
+  * Set correct owner, perms on /var/cache/pkg-cacher
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Wed, 17 Sep 2008 19:55:13 -0700
+
 pkg-cacher (0.9.4) unstable; urgency=low
 
   * Split into 3 files to ease maintenance prior to changing to multithreaded.

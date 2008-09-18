@@ -61,6 +61,9 @@ service pkg-cacher restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Wed Sep 17 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.5
+  - Fix owner, perms on /var/cache/pkg-cacher on Debian
+
 * Sun Sep 14 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.4
   - Split into 3 files to ease maintenance prior to changing to multithreaded.
   - Disable curl debugging, not supported on Debian Etch.
