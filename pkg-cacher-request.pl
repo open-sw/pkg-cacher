@@ -136,6 +136,7 @@ sub handle_connection {
 		my $reqstpath;
 		my $testpath;			# temporary, to be set by GET lines, undef on GO
 		my $ifmosince;			# to be undef by new GET lines
+		my $ifrange;			# to be undef by new GET lines
 		my $send_head_only = 0;	# to be undef by new GET lines
 		my $tolerated_empty_lines = 1;
 		my $hostreq;
@@ -196,6 +197,8 @@ sub handle_connection {
 					$concloseflag = 1;
 				} elsif(/^Range:\s+(.*)/i) {
 					$rangereq = $1;
+				} elsif(/^If-Range:\s+(.*)/i) {
+					$ifrange = $1;
 				} elsif(/^If-Modified-Since:\s+(.*)/i) {
 					$ifmosince = $1;
 				} elsif(/^\S+: [^:]*/) {
@@ -395,6 +398,11 @@ sub handle_connection {
 			}
 		}
 	
+		# handle if-range
+		if ($ifrange) {
+			$rangereq = undef
+		}
+
 		# handle if-modified-since in a better way (check the equality of
 		# the time stamps). Do only if download not forced above.
 
@@ -550,7 +558,7 @@ sub return_file {
 
 	if ($range) {
 		@range_list = parse_range($range);
-    } else {
+	} else {
 		@range_list = [ 0, undef ]
 	}
 
@@ -623,7 +631,7 @@ sub return_file {
 		($code, $msg) = ($status_header =~ /^(5\d\d)\s(.*)/);
 	}
 
-    if (!defined($code)) {
+	if (!defined($code)) {
 		info_message("Faulty header file detected: $cached_head, first line was: $status_header");
 		unlink $cached_head;
 		&sendrsp(500, 'Internal Server Error');
