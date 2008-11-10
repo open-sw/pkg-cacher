@@ -61,6 +61,24 @@ service pkg-cacher restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Sun Nov 09 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.6
+  - Add support for RedHat .img files as static files.
+
+  - Since we handle the Range header but not the If-Range header we need 
+    to ignore the former if the latter is specified.
+
+  - Remove import and precache scripts since they aren't applicable to the 
+    new cache structure.
+
+  - Remove proxy support for arbitrary host.
+
+  - Remove allowed_location configuration since path_map controls remote
+    server access.
+
+  - fix cgi-mode handling.
+
+  - Cleanup documentation.
+
 * Wed Sep 17 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.5
   - Fix owner, perms on /var/cache/pkg-cacher on Debian
 

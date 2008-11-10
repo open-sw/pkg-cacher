@@ -1,3 +1,24 @@
+pkg-cacher (0.9.6) unstable; urgency=low
+
+  * Add support for RedHat .img files as static files.
+
+  * Since we handle the Range header but not the If-Range header we need 
+    to ignore the former if the latter is specified.
+
+  * Remove import and precache scripts since they aren't applicable to the 
+    new cache structure.
+
+  * Remove proxy support for arbitrary host.
+
+  * Remove allowed_location configuration since path_map controls remote
+    server access.
+
+  * fix cgi-mode handling.
+
+  * Cleanup documentation.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Sun, 09 Nov 2008 12:50:23 -0800
+
 pkg-cacher (0.9.5) unstable; urgency=low
 
   * Set correct owner, perms on /var/cache/pkg-cacher

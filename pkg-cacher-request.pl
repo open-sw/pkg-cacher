@@ -35,6 +35,7 @@ require 'pkg-cacher-fetch.pl';
 # Data shared between files
 
 our $cfg;
+our %pathmap;
 
 our $cached_file;
 our $cached_head;
@@ -48,6 +49,113 @@ sub ipv6_addr_in_list ($$);
 sub get_abort_time ();
 
 # Subroutines
+
+sub sa_get_request {
+	my $request_data_ref = shift;
+	my $tolerated_empty_lines = 1;
+	my $testpath;			# temporary, to be set by GET lines, undef on GO
+	my $reqstpath;
+
+	# reading input line by line, through the secure input method
+	CLIENTLINE:
+	while () {
+
+		debug_message('Processing a new request line');
+
+		$_ = &getRequestLine;
+		debug_message("got: $_");
+
+		if (!defined($_)) {
+			exit(0);
+		}
+
+		if (/^$/) {
+			if (defined($testpath)) {
+				# done reading request
+				$reqstpath = $testpath;
+				last CLIENTLINE;
+			} elsif (!$tolerated_empty_lines) {
+				&sendrsp(403, 'Go away');
+				exit(4);
+			} else {
+				$tolerated_empty_lines--;
+			}
+		} else {
+
+			if (/^(GET|HEAD)\s+(\S+)(?:\s+HTTP\/(\d\.\d))?/) {
+				if (defined($testpath)) {
+					&sendrsp(403, 'Confusing request');
+					exit(4);
+				}
+				$testpath = $2;
+				$$request_data_ref{'httpver'} = $3;
+				# also support pure HEAD calls
+				if ($1 eq 'HEAD') {
+					$$request_data_ref{'send_head_only'} = 1;
+				}
+			} elsif (/^Host:\s+(\S+)/) {
+				$$request_data_ref{'hostreq'} = $1;
+			} elsif (/^((?:Pragma|Cache-Control):\s+\S+)/) {
+				debug_message("Request specified $1");
+				push @cache_control, $1;
+				if ($1=~/no-cache/) {
+					$$request_data_ref{'cache_status'} = 'EXPIRED';
+					debug_message("Download forced");
+				}
+			} elsif(/^Connection: close/i) {
+				$concloseflag = 1;
+			} elsif(/^Connection: .*TE/) {
+				$concloseflag = 1;
+			} elsif(/^Range:\s+(.*)/i) {
+				$$request_data_ref{'rangereq'} = $1;
+			} elsif(/^If-Range:\s+(.*)/i) {
+				$$request_data_ref{'ifrange'} = $1;
+			} elsif(/^If-Modified-Since:\s+(.*)/i) {
+				$$request_data_ref{'ifmosince'} = $1;
+			} elsif(/^\S+: [^:]*/) {
+				# whatever, but valid
+			} else {
+				info_message("Failed to parse input: $_");
+				&sendrsp(403, "Could not understand $_");
+				exit(4);
+			}
+		}
+	}
+
+	return $reqstpath;
+}
+
+sub cgi_get_request {
+	my $request_data_ref = shift;
+
+	( $$request_data_ref{'httpver'} ) = $ENV{'SERVER_PROTOCOL'} =~ /^HTTP\/(\d+\.\d+)$/;
+	$$request_data_ref{'send_head_only'} = $ENV{'REQUEST_METHOD'} eq 'HEAD';
+	$$request_data_ref{'hostreq'} = $ENV{'SERVER_NAME'};
+	$$request_data_ref{'rangereq'} = $ENV{'HTTP_RANGE'};
+	$$request_data_ref{'ifrange'} = $ENV{'HTTP_IF_RANGE'};
+	$$request_data_ref{'ifmosince'} = $ENV{'HTTP_IF_MODIFIED_SINCE'};
+
+	if (exists $ENV{'HTTP_PRAGMA'}) {
+		if ($ENV{'HTTP_PRAGMA'} =~ /no-cache/) {
+			$$request_data_ref{'cache_status'} = 'EXPIRED';
+		}
+	}
+
+	if (exists $ENV{'HTTP_CACHE_CONTROL'}) {
+		if ($ENV{'HTTP_CACHE_CONTROL'} =~ /no-cache/) {
+			$$request_data_ref{'cache_status'} = 'EXPIRED';
+		}
+	}
+
+	my $cgi_path;
+
+	# pick up the URL
+	$cgi_path=$ENV{PATH_INFO};
+	$cgi_path=$ENV{QUERY_STRING} if ! $cgi_path;
+	$cgi_path='/' if ! $cgi_path; # set an invalid path to display infos below
+
+	return $cgi_path;
+}
 
 sub handle_connection {
 	$mode = $_[0];
@@ -134,85 +242,26 @@ sub handle_connection {
 	while (!$concloseflag) {
 
 		my $reqstpath;
-		my $testpath;			# temporary, to be set by GET lines, undef on GO
-		my $ifmosince;			# to be undef by new GET lines
-		my $ifrange;			# to be undef by new GET lines
-		my $send_head_only = 0;	# to be undef by new GET lines
-		my $tolerated_empty_lines = 1;
-		my $hostreq;
-		my $rangereq = "";
-		my $httpver;
 		my $force_download=0;
-		my $cache_status;
+		my %request_data;
 
-		# reading input line by line, through the secure input method
-		CLIENTLINE:
-		while(1) {
-
-			debug_message('Processing a new request line');
-
-			$_ = &getRequestLine;
-			debug_message("got: $_");
-
-			if (!defined($_)) {
-				exit(0);
-			}
-
-			if (/^$/) {
-				if (defined($testpath)) {
-					# done reading request
-					$reqstpath = $testpath;
-					last CLIENTLINE;
-				} elsif (!$tolerated_empty_lines) {
-					&sendrsp(403, 'Go away');
-					exit(4);
-				} else {
-					$tolerated_empty_lines--;
-				}
-			} else {
-
-				if (/^(GET|HEAD)\s+(\S+)(?:\s+HTTP\/(\d\.\d))?/) {
-					if (defined($testpath)) {
-						&sendrsp(403, 'Confusing request');
-						exit(4);
-					}
-					$testpath = $2;
-					$httpver = $3;
-					# also support pure HEAD calls
-					if ($1 eq 'HEAD') {
-						$send_head_only = 1;
-					}
-				} elsif (/^Host:\s+(\S+)/) {
-					$hostreq = $1;
-				} elsif (/^((?:Pragma|Cache-Control):\s+\S+)/) {
-					debug_message("Request specified $1");
-					push @cache_control, $1;
-					if ($1=~/no-cache/) {
-						$cache_status = 'EXPIRED';
-						debug_message("Download forced");
-					}
-				} elsif(/^Connection: close/i) {
-					$concloseflag = 1;
-				} elsif(/^Connection: .*TE/) {
-					$concloseflag = 1;
-				} elsif(/^Range:\s+(.*)/i) {
-					$rangereq = $1;
-				} elsif(/^If-Range:\s+(.*)/i) {
-					$ifrange = $1;
-				} elsif(/^If-Modified-Since:\s+(.*)/i) {
-					$ifmosince = $1;
-				} elsif(/^\S+: [^:]*/) {
-					# whatever, but valid
-				} else {
-					info_message("Failed to parse input: $_");
-					&sendrsp(403, "Could not understand $_");
-					exit(4);
-				}
-			}
+		$request_data{'httpver'} = undef;
+		$request_data{'send_head_only'} = 0;
+		$request_data{'hostreq'} = undef;
+		$request_data{'cache_status'} = undef;
+		$request_data{'rangereq'} = undef;
+		$request_data{'ifrange'} = undef;
+		$request_data{'ifmosince'} = undef;
+	
+		if ($mode eq 'cgi') {
+			$reqstpath = &cgi_get_request(\%request_data);
+			$concloseflag = 1;
+		} else {
+			$reqstpath = &sa_get_request(\%request_data);
 		}
 
 		# RFC2612 requires bailout for HTTP/1.1 if no Host
-		if (!$hostreq && $httpver >= '1.1') {
+		if (!$request_data{'hostreq'} && $request_data{'httpver'} >= '1.1') {
 			&sendrsp(400, 'Host Header missing');
 			exit(4);
 		}
@@ -246,8 +295,9 @@ sub handle_connection {
 				debug_message('Host in Absolute URI is this server');
 				$reqstpath =~ s!^http://[^/]+!!; # Remove prefix and hostname
 			} else { # Proxy request
-				debug_message('Host in Absolute URI is not this server');
-				$reqstpath =~ s!^http:/!!; # Remove absolute prefix
+				info_message('Host in Absolute URI is not this server - proxy unsupported');
+				&sendrsp(403, 'Proxy requests are not allowed');
+				exit(4);
 			}
 			defined($sock) && $sock->shutdown(2); # Close
 		}
@@ -269,31 +319,14 @@ sub handle_connection {
 			usage_error($client);
 		}
 
-		$uri =~ s#/{2,}#/#g; # Remove multiple separators
-		($filename) = ($uri =~ /\/?([^\/]+)$/);
-
-		if ($cfg->{allowed_locations}) {
-			#         debug_message('Doing location check for '.$cfg->{allowed_locations} );
-			my $mess;
-			my $cleanuri=$uri;
-			$cleanuri=~s!/[^/]+/[\.]{2}/!/!g;
-			if ($host eq '..' ) {
-				$mess = q!'..' contained in the hostname!;
-			} elsif ($cleanuri =~/\/\.\./) {
-				$mess = 'File outside of the allowed path';
-			} else {
-				for( split(/\s*[;,]\s*/,$cfg->{allowed_locations}) ) {
-					debug_message("Testing URI: $host$cleanuri on $_");
-					goto location_allowed if ("$host$cleanuri" =~ /^$_/);
-				}
-				$mess = "Host '$host' is not configured in the allowed_locations directive";
-			}
-		badguy:
-			debug_message("$mess; access denied");
-			&sendrsp(403, "Access to cache prohibited, $mess");
+		if (not exists $pathmap{$host}) { # error
+			info_message("Undefined virtual host $1");
+			&sendrsp(404, "Undefined virtual host $1");
 			exit(4);
 		}
-		location_allowed:
+
+		$uri =~ s#/{2,}#/#g; # Remove multiple separators
+		($filename) = ($uri =~ /\/?([^\/]+)$/);
 
 		if ($filename =~ /$static_files_regexp/) {
 			# We must be fetching a .deb or a .rpm or some other recognised
@@ -337,7 +370,7 @@ sub handle_connection {
 		if (&is_index_file($filename)) {
 			debug_message("known as index file: $filename");
 			# in offline mode, if not already forced deliver it as-is, otherwise check freshness
-			if ($cache_status ne 'EXPIRED' && -f $cached_file && -f $cached_head && !$cfg->{offline_mode}) {
+			if ($request_data{'cache_status'} ne 'EXPIRED' && -f $cached_file && -f $cached_head && !$cfg->{offline_mode}) {
 				if ($cfg->{expire_hours} > 0) {
 					my $now = time();
 					my @stat = stat($cached_file);
@@ -345,8 +378,8 @@ sub handle_connection {
 						debug_message("unlinking $filename because it is too old");
 						# Set the status to EXPIRED so the log file can show it
 						# was downloaded again
-						$cache_status = 'EXPIRED';
-						debug_message($cache_status);
+						$request_data{'cache_status'} = 'EXPIRED';
+						debug_message($request_data{'cache_status'});
 					}
 				} else {
 					# use HTTP timestamping/ETag
@@ -377,8 +410,8 @@ sub handle_connection {
 							  debug_message("ETag headers match, $oldtag <-> $newtag. Cached file unchanged");
 							} else {
 							  debug_message("ETag headers different, $oldtag <-> $newtag. Refreshing cached file");
-							  $cache_status = 'EXPIRED';
-							  debug_message($cache_status);
+							  $request_data{'cache_status'} = 'EXPIRED';
+							  debug_message($request_data{'cache_status'});
 							}
 						} else {
 							if ($oldmod && (str2time($oldmod) >= str2time($newmod)) ) {
@@ -386,28 +419,30 @@ sub handle_connection {
 								debug_message("cached file is up to date or more recent, $oldmod <-> $newmod");
 							} else {
 								debug_message("downloading $filename because more recent version is available: $oldmod <-> $newmod");
-								$cache_status = 'EXPIRED';
-								debug_message($cache_status);
+								$request_data{'cache_status'} = 'EXPIRED';
+								debug_message($request_data{'cache_status'});
 							}
 						}
 					} else {
 						info_message('HEAD request error: '.$response->status_line.' Reusing existing file');
-						$cache_status = 'OFFLINE';
+						$request_data{'cache_status'} = 'OFFLINE';
 					}
 				}
 			}
 		}
 	
 		# handle if-range
-		if ($ifrange) {
-			$rangereq = undef
+		# We don't support if-range so if it is specified we need to always 
+		# treat the file as expired and send the whole thing.
+		if ($request_data{'ifrange'}) {
+			$request_data{'rangereq'} = undef;
 		}
 
 		# handle if-modified-since in a better way (check the equality of
 		# the time stamps). Do only if download not forced above.
 
-		if ($ifmosince && $cache_status ne 'EXPIRED') {
-			$ifmosince =~ s/\n|\r//g;
+		if ($request_data{'ifmosince'} && $request_data{'cache_status'} ne 'EXPIRED') {
+			$request_data{'ifmosince'} =~ s/\n|\r//g;
 
 			my $oldhead;
 			if (open(my $testfile, $cached_head)) {
@@ -421,9 +456,9 @@ sub handle_connection {
 				close($testfile);
 			}
 
-			if ($oldhead && str2time($ifmosince) >= str2time($oldhead)) {
+			if ($oldhead && str2time($request_data{'ifmosince'}) >= str2time($oldhead)) {
 				&sendrsp(304, 'Not Modified');
-				debug_message("File not changed: $ifmosince");
+				debug_message("File not changed: $request_data{'ifmosince'}");
 				next REQUEST;
 			}
 		}
@@ -434,13 +469,13 @@ sub handle_connection {
 
 		# download or not decision. Also releases the global lock
 		dl_check:
-		if (!$force_download && -e $cached_head && -e $cached_file && !$cache_status) {
+		if (!$force_download && -e $cached_head && -e $cached_file && !$request_data{'cache_status'}) {
 			sysopen($fromfile, $cached_file, O_RDONLY) ||
 				barf("Unable to open $cached_file: $!.");
 			if (-f $complete_file) {
 				# not much to do if complete
-				$cache_status = 'HIT';
-				debug_message($cache_status);
+				$request_data{'cache_status'} = 'HIT';
+				debug_message($request_data{'cache_status'});
 			} else {
 				# a fetcher was either not successful or is still running
 				# look for activity...
@@ -474,9 +509,9 @@ sub handle_connection {
 			sysopen($fromfile, $cached_file, O_RDONLY)
 				|| barf("Unable to open $cached_file: $!.");
 			# Set the status to MISS so the log file can show it had to be downloaded
-			if (!defined($cache_status)) { # except on special presets from index file checks above
-				$cache_status = 'MISS';
-				debug_message($cache_status);
+			if (!defined($request_data{'cache_status'})) { # except on special presets from index file checks above
+				$request_data{'cache_status'} = 'MISS';
+				debug_message($request_data{'cache_status'});
 			}
 
 			my $pid = fork();
@@ -497,7 +532,7 @@ sub handle_connection {
 		}
 
 		debug_message('checks done, can return now');
-		my $ret = &return_file ($send_head_only ? undef : \$fromfile, $rangereq);
+		my $ret = &return_file ($request_data{'send_head_only'} ? undef : \$fromfile, $request_data{'rangereq'});
 		if ($ret==2) { # retry code
 			debug_message('return_file requested retry');
 			goto dl_check;
@@ -505,7 +540,7 @@ sub handle_connection {
 		debug_message('Package sent');
 
 		# Write all the stuff to the log file
-		writeaccesslog($cache_status, $filename, -s $cached_file, $client);
+		writeaccesslog($request_data{'cache_status'}, $filename, -s $cached_file, $client);
 	}
 }
 
@@ -569,10 +604,11 @@ sub return_file {
 	my $msg;
 
 	WAIT_FOR_HEADER:
-	while (1) {
+	while () {
 		if (time() > $abort_time) {
 			info_message("return_file $cached_file aborted waiting for header");
-			&sendrsp(504, 'Request Timeout') if !$header_printed;
+			&sendrsp(504, 'Request Timeout')
+				if !$header_printed;
 			exit(4);
 		}
 
@@ -611,9 +647,9 @@ sub return_file {
 			for (<$in>) {
 				if (/^Last-Modified|Content|Accept|ETag|Age/) {
 					if (/^Content-Length:\ *(\d+)/) {
-					$total_length = $1;
+						$total_length = $1;
 					} else {
-					$fixed_headers .= $_;
+						$fixed_headers .= $_;
 					}
 				}
 			}
@@ -692,7 +728,11 @@ sub return_file {
     }
 
 	if ($no_valid_ranges) {
-		$status_header = "HTTP/1.1 416 Requested Range Not Satisfiable\r\n";
+		if ($mode eq 'cgi') {
+			$status_header = "Status: 416 Requested Range Not Satisfiable\r\n";
+		} else {
+			$status_header = "HTTP/1.1 416 Requested Range Not Satisfiable\r\n";
+		}
 		$status_header .= "Connection: Close\r\n";
 		print $con $status_header."\r\n";
 		return;
@@ -735,16 +775,19 @@ sub return_file {
 				# in CGI mode, use alternative status line. Don't print one
 				# for normal data output (apache does not like that) but on
 				# abnormal codes, and then exit immediately
-				if ($mode eq 'cgi') {
-				}
-
 				my $headers = '';
 
 				if ($begin != 0 || $end != undef) {
-					$headers .= "HTTP/1.1 206 Partial Content\r\n";
+					if ($mode eq 'cgi') {
+						$headers = "Status: 206 Partial Content\r\n";
+					} else {
+						$headers = "HTTP/1.1 206 Partial Content\r\n";
+					}
 					$headers .= 'Content-Range: bytes '.$range_start.'-'.($range_start+$range_length-1).'/'.$total_length."\r\n";
 				} else {
-					$headers .= $status_header;
+					if ($mode ne 'cgi') {
+						$headers = $status_header;
+					}
 				}
 
 				$headers .= 'Content-Length: '.$range_length."\r\n";
@@ -989,16 +1032,6 @@ my @reqLineBuf;
 my $reqTail;
 sub getRequestLine {
 	# if executed through a CGI wrapper setting a flag variable
-	if ($ENV{CGI_MODE}) {
-		my $cgi_path;
-		# pick up the URL
-		$cgi_path=$ENV{PATH_INFO} if ! $cgi_path;
-		$cgi_path=$ENV{QUERY_STRING} if ! $cgi_path;
-		$cgi_path='/' if ! $cgi_path; # set an invalid path to display infos below
-
-		push(@reqLineBuf, "GET $cgi_path", '', undef); # undef stops operation
-		undef $cgi_path; # don't re-add it
-	}
 	if (!@reqLineBuf) {
 		my $buf='';
 

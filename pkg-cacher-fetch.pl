@@ -107,7 +107,8 @@ sub debug_callback {
 		$curl->setopt(CURLOPT_NOSIGNAL, 1);
 		$curl->setopt(CURLOPT_LOW_SPEED_LIMIT, 0);
 		$curl->setopt(CURLOPT_LOW_SPEED_TIME, $cfg->{fetch_timeout});
-		$curl->setopt(CURLOPT_INTERFACE, $cfg->{use_interface}) if defined $cfg->{use_interface};
+		$curl->setopt(CURLOPT_INTERFACE, $cfg->{use_interface})
+			if defined $cfg->{use_interface};
 
 		# Callbacks
 		$curl->setopt(CURLOPT_WRITEFUNCTION, \&body_callback);
@@ -147,74 +148,78 @@ sub libcurl {
 	my $url="http://$vhost$uri";
 	my $curl = ${&setup_curl};
 
-	my $do_hopping = (exists $pathmap{$vhost});
 	my $hostcand;
+	my $response;
 
-RETRY_ACTION:
-	my $response = new HTTP::Response;
+	PROCESS_HOST: while () {
+		$response = new HTTP::Response;
 
-	# make the virtual hosts real. The list is reduced which is not so smart,
-	# but since the fetcher process dies anyway it does not matter.
-	if ($do_hopping) {
+		# make the virtual hosts real. The list is reduced which is not so smart,
+		# but since the fetcher process dies anyway it does not matter.
 		$hostcand = shift(@{$pathmap{$vhost}});
 		debug_message("Candidate: $hostcand");
 		$url=($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
-	}
 
-RETRY_REDIRECT:
-	if (!$pkfdref) {
-		debug_message ('download agent: setting up for HEAD request');
-		$curl->setopt(CURLOPT_NOBODY,1);
-	} else {
-		debug_message ('download agent: setting up for GET request');
-		$curl->setopt(CURLOPT_HTTPGET,1);
-		$curl->setopt(CURLOPT_FILE, $$pkfdref);
-	}
+		while () {
+			if (!$pkfdref) {
+				debug_message ('download agent: setting up for HEAD request');
+				$curl->setopt(CURLOPT_NOBODY,1);
+			} else {
+				debug_message ('download agent: setting up for GET request');
+				$curl->setopt(CURLOPT_HTTPGET,1);
+				$curl->setopt(CURLOPT_FILE, $$pkfdref);
+			}
 
-	push @cache_control, 'Pragma:' if ! grep /^Pragma:/, @cache_control; # Override libcurl default.
-	$curl->setopt(CURLOPT_HTTPHEADER, \@cache_control);				
-	$curl->setopt(CURLOPT_WRITEHEADER, [\$response, ($pkfdref ? 1 : 0)]);
-	$curl->setopt(CURLOPT_URL, $url);
+			push @cache_control, 'Pragma:'
+				if ! grep /^Pragma:/, @cache_control; # Override libcurl default.
+			$curl->setopt(CURLOPT_HTTPHEADER, \@cache_control);				
+			$curl->setopt(CURLOPT_WRITEHEADER, [\$response, ($pkfdref ? 1 : 0)]);
+			$curl->setopt(CURLOPT_URL, $url);
 
-	debug_message("download agent: getting $url");
+			debug_message("download agent: getting $url");
 
-	if ($curl->perform) { # error
-		$response=HTTP::Response->new(502);
-		$response->protocol('HTTP/1.1');
-		$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
-		info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
-		write_header(\$response); # Replace with error header
-	}
-	$response->request($url);
+			if ($curl->perform) { # error
+				$response=HTTP::Response->new(502);
+				$response->protocol('HTTP/1.1');
+				$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
+				info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
+				write_header(\$response); # Replace with error header
+			}
 
-	if ($response->is_redirect()) {
-		# It is a redirect
-		info_message('libcurl got redirect for '.$url);
+			$response->request($url);
 
-		$url = $response->header("Location");
-		info_message('Redirecting to '.$url);
-		$response = new HTTP::Response;
-		if ($pkfdref) {
-			truncate($$pkfdref, 0);
-			sysseek($$pkfdref, 0, 0);
-		}
-		unlink($cached_head, $complete_file);
-		goto RETRY_REDIRECT;
-	}
+			if (!$response->is_redirect()) {
+				# It isn't a redirect so we are done
+				last;
+			}
 
-	if ($do_hopping) {
-		# if okay or the last candidate fails, put it back into the list
-		if ($response->is_success || ! @{$pathmap{$vhost}} ) {
-			unshift(@{$pathmap{$vhost}}, $hostcand);
-		} else {
-			# truncate cached_file to remove previous HTTP error
+			# It is a redirect
+			info_message('libcurl got redirect for '.$url);
+
+			$url = $response->header("Location");
+			info_message('Redirecting to '.$url);
+			$response = new HTTP::Response;
 			if ($pkfdref) {
 				truncate($$pkfdref, 0);
 				sysseek($$pkfdref, 0, 0);
 			}
-			goto RETRY_ACTION;
+			unlink($cached_head, $complete_file);
+		}
+
+		# if okay or the last candidate fails, put it back into the list and return
+		if ($response->is_success || ! @{$pathmap{$vhost}} ) {
+			unshift(@{$pathmap{$vhost}}, $hostcand);
+			last;
+		}
+
+		# truncate cached_file to remove previous HTTP error
+		if ($pkfdref) {
+			truncate($$pkfdref, 0);
+			sysseek($$pkfdref, 0, 0);
 		}
 	}
+
+	debug_message("libcurl: response =\n".$response->as_string."\n");
 
 	return \$response;
 }
@@ -239,7 +244,7 @@ sub fetch_store {
 
 	$response = ${&libcurl($host, $uri, \$pkfd)};	
 
-	flock ($pkfd, LOCK_UN);
+	flock($pkfd, LOCK_UN);
 	close($pkfd) || warn "Close $cached_file failed, $!";
 
 	debug_message('libcurl returned');
@@ -276,7 +281,7 @@ sub fetch_store {
 		open(MF, ">$complete_file") || die $!;
 		print MF $response->request;
 		close(MF);
-	} elsif(HTTP::Status::is_client_error($response->code)) {
+	} elsif (HTTP::Status::is_client_error($response->code)) {
 		debug_message('Upstream server returned error '.$response->code." for ".$response->request.". Deleting $cached_file.");
 		unlink $cached_file;
 	}

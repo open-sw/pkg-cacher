@@ -1,11 +1,11 @@
 NAME=pkg-cacher
-VERSION=0.9.5
-TAROPTS=--directory .. --exclude=.svn --exclude='*.swp' --dereference 
+VERSION=0.9.6
+TAROPTS=--directory .. --exclude=.svn --exclude='*.swp' --exclude='*~' --dereference 
 
 PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-request.pl pkg-cacher-fetch.pl \
 			pkg-cacher-lib.pl \
-			pkg-cacher-cleanup.pl pkg-cacher-import.pl \
-			pkg-cacher-precache.pl pkg-cacher-report.pl
+			pkg-cacher-cleanup.pl \
+			pkg-cacher-report.pl
 DATA_FILES=index_files.regexp static_files.regexp
 
 SRPMDIR:=$(shell rpm --eval '%{_srcrpmdir}')

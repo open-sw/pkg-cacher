@@ -226,7 +226,7 @@ th { font-family: arial, helvetica, sans-serif; font-size: 11pt; font-weight: bo
 $output .= "<p>
 <table border=0 cellpadding=8 cellspacing=1 bgcolor=\"#000000\" align=\"center\" width=\"600\">
 <tr bgcolor=\"#9999cc\"><td> <h1>Pkg-cacher traffic report</h1> </td></tr>
-<tr bgcolor=\"#cccccc\"><td>For more information on pkg-cacher visit <a href=\"http://packages.debian.org/pkg-cacher\">http://packages.debian.org/pkg-cacher</a>.
+<tr bgcolor=\"#cccccc\"><td>For more information on pkg-cacher visit <a href=\"http://gforge.opensource-sw.net/projects/pkg_cacher\">http://gforge.opensource-sw.net/projects/pkg_cacher</a>.
 </td></tr>
 </table>";
 
