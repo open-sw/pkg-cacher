@@ -33,7 +33,8 @@ require 'pkg-cacher-lib.pl';
 # Set some defaults
 my $version="0.1";
 my $configfile_default = '/etc/pkg-cacher/pkg-cacher.conf';
-my $configfile = $configfile_default;
+
+our $configfile = $configfile_default;
 
 my $mode='sa'; # cgi|inetd|sa
 

@@ -11,10 +11,10 @@ Architecture: all
 #Depends: ${perl:Depends}, bzip2, libwww-curl-perl (>=3.12), libwww-perl, libdigest-sha1-perl, ed
 Depends: ${perl:Depends}, bzip2, libwww-curl-perl, libwww-perl, libdigest-sha1-perl, ed
 Suggests: libio-socket-inet6-perl
-Description: Caching proxy for Debian package and source files
- Pkg-cacher performs caching of .deb and source packages which have been
- downloaded by local users. It is most useful for local area networks with slow
- internet uplink.
+Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
+ Pkg-cacher performs caching of packages and metadata which have been downloaded by 
+ local users. It is most useful for local area networks with slow internet uplink or 
+ many machines running the same distribution and version.
  .
  When a package is requested, the cache checks whether it already has the
  requested version, in which case it sends the package to the user immediately.
@@ -28,10 +28,27 @@ Description: Caching proxy for Debian package and source files
  configuration or modification of access URLs in sources.list.
  .
  The package includes utilities to clean the cache (removing obsolete package
- files), generate usage reports and import existing package files.  Experimental
- features include a simple package checksum verification framework, optional
- IPv6 support and pre-fetching of new packages (upgrade candidates).
+ files), generate usage reports.  Experimental features include optional IPv6 
+ support.
  .
- Pkg-cacher can be used as a replacement for apt-proxy, with no need to modify
- client's /etc/pkg/sources.list files (and even reusing its config and cached
- data), or as an alternative to approx.
+ Pkg-cacher can be used as a replacement for apt-cacher or apt-proxy, with no 
+ need to modify client's /etc/pkg/sources.list files or as an alternative to 
+ approx.
+
+Package: pkg-cacher-sa
+Architecture: all
+Depends: pkg-cacher
+Conflicts: pkg-cacher-cgi
+Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
+ This package installs and configures pkg-cacher as a standalone server.
+ .
+ Install pkg-cacher-cgi instead if a cgi script under Apache is desired.
+
+Package: pkg-cacher-cgi
+Architecture: all
+Depends: pkg-cacher,apache2
+Conflicts: pkg-cacher-sa
+Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
+ This package installs and configures pkg-cacher as a cgi script under Apache.
+ .
+ Install pkg-cacher-sa instead if a standalone server is desired.

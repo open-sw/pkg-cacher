@@ -1,4 +1,4 @@
-Summary:  A caching tool for the apt-get and yum package management system.
+Summary:  Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
 Name: pkg-cacher
 Version: @@VERSION@@
 Release: 1%{dist}
@@ -13,9 +13,28 @@ Provides: perl(pkg-cacher-request.pl)
 Provides: perl(pkg-cacher-fetch.pl)
 
 %description
-pkg-cacher.pl is a CGI which will keep a cache on disk of Debian Packages and Release files (including .deb files) which have been received from Debian distribution servers on the Internet. When an apt-get client issues a request for a file to pkg-cacher.pl, if the file is already on disk it is served to the client immediately, otherwise it is fetched from the Internet, saved on disk, and then served to the client. This means that several Debian machines can be upgraded but each package need be downloaded only once.
+Pkg-cacher performs caching of packages and metadata which have been downloaded by 
+local users. It is most useful for local area networks with slow internet uplink or 
+many machines running the same distribution and version.
 
-This requires the apache web server version 2 to be installed (www.apache.org) 
+When a package is requested, the cache checks whether it already has the
+requested version, in which case it sends the package to the user immediately.
+If not, it downloads the package while streaming it to the user at the same
+time. A local copy is then kept for use by other users.
+
+Pkg-cacher has been optimized for best utilization of network bandwidth and
+efficiency even on slow low-memory servers. Multiple ways of installation are
+possible: as a stand-alone HTTP proxy, as a daemon executed by inetd or as a
+CGI program. Client machines are configured by changing APT's proxy
+configuration or modification of access URLs in sources.list.
+
+The package includes utilities to clean the cache (removing obsolete package
+files), generate usage reports.  Experimental features include optional IPv6 
+support.
+
+Pkg-cacher can be used as a replacement for apt-cacher or apt-proxy, with no 
+need to modify client's /etc/pkg/sources.list files or as an alternative to 
+approx.
 
 %prep
 %setup -q
@@ -26,6 +45,7 @@ make DESTDIR=$RPM_BUILD_ROOT install-dirs
 make DESTDIR=$RPM_BUILD_ROOT install-files
 perl -pe 's/^my \$version=.*/my \$version="'%{version}-%{release}'";/' -i $RPM_BUILD_ROOT/usr/share/pkg-cacher/*
 make DESTDIR=$RPM_BUILD_ROOT install-config
+make DESTDIR=$RPM_BUILD_ROOT install-docs
 make DESTDIR=$RPM_BUILD_ROOT install-logrotate
 make DESTDIR=$RPM_BUILD_ROOT install-init
 make DESTDIR=$RPM_BUILD_ROOT install-cron
@@ -45,6 +65,7 @@ make DESTDIR=$RPM_BUILD_ROOT install-link
 %config /etc/init.d/pkg-cacher
 %config /etc/logrotate.d/pkg-cacher
 %config /etc/sysconfig/pkg-cacher
+%doc /usr/share/doc/pkg-cacher/*
 %doc /usr/share/man/man1/pkg-cacher.*
 
 %pre

@@ -40,6 +40,7 @@ our %pathmap;
 our $cached_file;
 our $cached_head;
 our $complete_file;
+our $configfile;
 
 our @cache_control;
 

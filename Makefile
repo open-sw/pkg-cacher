@@ -65,6 +65,10 @@ install-init:
 	install -m 755 fedora/pkg-cacher.init $(DESTDIR)/etc/init.d/pkg-cacher
 	install -m 644 fedora/pkg-cacher.sysconfig $(DESTDIR)/etc/sysconfig/pkg-cacher
 
+install-docs:
+	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher
+	install -m 644 README TODO $(DESTDIR)/usr/share/doc/pkg-cacher
+
 install-logrotate:
 	install -m 755 -d $(DESTDIR)/etc/logrotate.d
 	install -m 644 pkg-cacher.logrotate $(DESTDIR)/etc/logrotate.d/pkg-cacher

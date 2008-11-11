@@ -28,13 +28,14 @@ case "$1" in
 
     	test -d /var/cache/pkg-cacher || {
 		mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
-		chown -R pkg-cacher:pkg-cacher /var/cache/pkg-cacher
 	}
+	chown -R pkg-cacher:pkg-cacher /var/cache/pkg-cacher
     	test -d /var/log/pkg-cacher || {
 		mkdir /var/log/pkg-cacher
 		touch /var/log/pkg-cacher/{access.log,error.log}
-		chown -R pkg-cacher:pkg-cacher /var/log/pkg-cacher
 	}
+	chown -R pkg-cacher:pkg-cacher /var/log/pkg-cacher
+	sed -i -e '/^\(user\|group\)=/s/=.*$/=pkg-cacher/' /etc/pkg-cacher/pkg-cacher.conf
     ;;
 
     abort-upgrade|abort-remove|abort-deconfigure)
