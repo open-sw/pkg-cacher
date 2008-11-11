@@ -29,7 +29,7 @@ install: build
 	dh_link -ppkg-cacher-cgi /usr/share/doc/pkg-cacher /usr/share/doc/pkg-cacher-cgi
 	dh_installdocs -ppkg-cacher README TODO
 	dh_installlogrotate -i
-	dh_installinit -i
+	dh_installinit -i --name=pkg-cacher
 	dh_installcron -i
 	dh_installman -i debian/pkg-cacher.1
 	dh_installchangelogs  -i
