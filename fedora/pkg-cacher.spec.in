@@ -36,6 +36,26 @@ Pkg-cacher can be used as a replacement for apt-cacher or apt-proxy, with no
 need to modify client's /etc/pkg/sources.list files or as an alternative to 
 approx.
 
+%package sa
+Summary:  Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
+Group: Applications/System
+Requires: pkg-cacher = %{version}
+Conflicts: pkg-cacher-cgi
+%description sa
+This package installs and configures pkg-cacher as a cgi script under Apache.
+
+Install pkg-cacher-sa instead if a standalone server is desired.
+
+%package cgi
+Summary:  Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
+Group: Applications/System
+Requires: pkg-cacher = %{version}
+Conflicts: pkg-cacher-sa
+%description cgi
+This package installs and configures pkg-cacher as a standalone server.
+
+Install pkg-cacher-cgi instead if a cgi script under Apache is desired.
+
 %prep
 %setup -q
 
@@ -62,21 +82,51 @@ make DESTDIR=$RPM_BUILD_ROOT install-link
 %config /etc/pkg-cacher/pkg-cacher.conf
 %config /etc/pkg-cacher/apache.conf
 %config /etc/cron.daily/pkg-cacher
-%config /etc/init.d/pkg-cacher
 %config /etc/logrotate.d/pkg-cacher
-%config /etc/sysconfig/pkg-cacher
 %doc /usr/share/doc/pkg-cacher/*
 %doc /usr/share/man/man1/pkg-cacher.*
 
-%pre
+%files sa
+%defattr(-,root,root)
+%config /etc/init.d/pkg-cacher
+%config /etc/sysconfig/pkg-cacher
+
+%files cgi
+%defattr(-,root,root)
+
+%pre sa
 getent group pkg-cacher > /dev/null || groupadd -r pkg-cacher
 getent passwd pkg-cacher > /dev/null || \
 	useradd -r -d /var/cache/pkg-cacher -g pkg-cacher -s /sbin/nologin \
 	-c "pkg-cacher user" pkg-cacher > /dev/null 2>&1
 
-%post
+%post sa
+test -d /var/cache/pkg-cacher || {
+	mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
+}
+chown -R pkg-cacher:pkg-cacher /var/cache/pkg-cacher
+test -d /var/log/pkg-cacher || {
+	mkdir /var/log/pkg-cacher
+	touch /var/log/pkg-cacher/{access.log,error.log}
+}
+chown -R pkg-cacher:pkg-cacher /var/log/pkg-cacher
+sed -i -e '/^\(user\|group\)=/s/=.*$/=pkg-cacher/' /etc/pkg-cacher/pkg-cacher.conf
 chkconfig pkg-cacher on
 service pkg-cacher restart
+
+%post cgi
+ln -sf /etc/pkg-cacher/apache.conf /etc/httpd/conf.d/pkg-cacher.conf
+test -d /var/cache/pkg-cacher || {
+	mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
+}
+chown -R apache:apache /var/cache/pkg-cacher
+test -d /var/log/pkg-cacher || {
+	mkdir /var/log/pkg-cacher
+	touch /var/log/pkg-cacher/{access.log,error.log}
+}
+chown -R apache:apache /var/log/pkg-cacher
+sed -i -e '/^\(user\|group\)=/s/=.*$/=apache/' /etc/pkg-cacher/pkg-cacher.conf
+service httpd restart
 
 %clean
 rm -rf $RPM_BUILD_ROOT

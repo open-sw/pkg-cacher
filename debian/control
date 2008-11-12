@@ -37,7 +37,7 @@ Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS reposi
 
 Package: pkg-cacher-sa
 Architecture: all
-Depends: pkg-cacher
+Depends: pkg-cacher (= ${binary:Version})
 Conflicts: pkg-cacher-cgi
 Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
  This package installs and configures pkg-cacher as a standalone server.
@@ -46,7 +46,7 @@ Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS reposi
 
 Package: pkg-cacher-cgi
 Architecture: all
-Depends: pkg-cacher,apache2
+Depends: pkg-cacher (= ${binary:Version}), apache2
 Conflicts: pkg-cacher-sa
 Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
  This package installs and configures pkg-cacher as a cgi script under Apache.
