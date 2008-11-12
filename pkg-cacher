@@ -146,6 +146,15 @@ EOM
 		$newcfg->{$k} = $v;
 	}
 
+	# allow cgi scripts to override configuration variables
+	if ($mode eq 'cgi') {
+		foreach my $key (keys %ENV) {
+			if ($key =~ /^PKG_CACHER_([A-Z]+)$/) {
+				$newcfg->{lc $1} = $ENV{$key};
+			}
+		}
+	}
+
 	if (!$redo) {
 		my $uid = $newcfg->{user} =~ /^\d+$/ ? $newcfg->{user} : getpwnam($newcfg->{group});
 		my $gid = $newcfg->{group} =~ /^\d+$/ ? $newcfg->{group} : getgrnam($newcfg->{group});
@@ -162,7 +171,7 @@ EOM
 
 		my @reread_items = (
 			'allowed_hosts', 'denied_hosts', 'allowed_hosts_6', 'denied_hosts_6',
-			'allowed_locations', 'offline_mode', 'expire_hours',
+			'offline_mode', 'expire_hours',
 			'http_proxy', 'use_proxy', 'http_proxy_auth', 'use_proxy_auth',
 			'limit', 'debug', 'path_map' );
 
