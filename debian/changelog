@@ -15,9 +15,13 @@ pkg-cacher (0.9.6) unstable; urgency=low
 
   * fix cgi-mode handling.
 
+  * Add separate packages for standalone vs cgi installs.
+
+  * Allow override of configuration values in cgi-mode.
+
   * Cleanup documentation.
 
- -- Robert Nelson <robertn@the-nelsons.org>  Sun, 09 Nov 2008 12:50:23 -0800
+ -- Robert Nelson <robertn@the-nelsons.org>  Wed, 12 Nov 2008 20:10:53 -0800
 
 pkg-cacher (0.9.5) unstable; urgency=low
 

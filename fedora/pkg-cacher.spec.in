@@ -132,7 +132,7 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Sun Nov 09 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.6
+* Sun Nov 11 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.6
   - Add support for RedHat .img files as static files.
 
   - Since we handle the Range header but not the If-Range header we need 
@@ -147,6 +147,10 @@ rm -rf $RPM_BUILD_ROOT
     server access.
 
   - fix cgi-mode handling.
+
+  - Add separate packages for standalone vs cgi installs.
+
+  - Allow override of configuration values in cgi-mode.
 
   - Cleanup documentation.
 
