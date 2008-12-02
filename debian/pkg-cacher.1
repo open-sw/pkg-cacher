@@ -1,21 +1,21 @@
-.TH APT\-CACHER 1
+.TH PKG\-CACHER 1
 .\" NAME should be all caps, SECTION should be 1-8, maybe w/ subsection
 .\" other parms are allowed: see man(7), man(1)
 .SH NAME
-pkg\-cacher \- caching proxy for Debian packages
+pkg\-cacher \- caching proxy for Debian and RedHat packages
 .SH SYNOPSIS
 .SS Server:
 .B pkg\-cacher 
 .I [-i|-d] [-c configfile ] [-p pidfile] [-r directory] [-R retries] [config_option=foo] [-h|--help] 
 
 .SS Client:
-.B http://pkg\-cacher.server:3142[/pkg\-cacher]/
-.I "[mirror] / [distribution]"
+.B http://pkg\-cacher.server[/pkg\-cacher]/
+.I "[path_map entry] / [distribution]"
 .SH "DESCRIPTION"
 .B Pkg\-cacher
-is a caching proxy for Debian packages, allowing a number of computers to share
+is a caching proxy for Debian and RedHat packages, allowing a number of computers to share
 a single cache. Packages requested from the cache only need to be downloaded
-from the Debian mirrors once, no matter how many local machines need to install
+from the Debian or RedHat mirrors once, no matter how many local machines need to install
 them. This saves network bandwidth, improves performance for users, and reduces
 the load on the mirrors.
 .SH COMMAND-LINE OPTIONS
@@ -50,8 +50,8 @@ single machine on your network to act as a server and configuring all client
 machines to use the server's cache.
 .PP
 Pkg\-cacher can be installed to run either as a daemon [preferred] or as a CGI
-script on a web server such as Apache. When a client (pkg\-get(1), pkgitude(8),
-synpkgic(8) etc.) requests a package from the cache machine, the request is
+script on a web server such as Apache. When a client (apt\-get(1), aptitude(8),
+synaptic(8), yum, etc.) requests a package from the cache machine, the request is
 handled by pkg\-cacher which checks whether it already has that particular
 package. If so, the package is returned immediately to the client for
 installation. If not, or if the package in the local cache has been superseded
@@ -79,7 +79,7 @@ to start the daemon.
 .SS Inetd Daemon:
 Edit /etc/inetd.conf and add the line
 .IP
-3142 stream tcp nowait www-data /usr/sbinc/pkg\-cacher/pkg\-cacher pkg\-cacher \-i
+80 stream tcp nowait pkg\-cacher /usr/sbin/pkg\-cacher/pkg\-cacher pkg\-cacher \-i
 .PP
 Restart or send SIGHUP to inetd after saving the file. This is a good method if
 you do not wish the daemon to be loaded all the time.
@@ -89,11 +89,11 @@ In either daemon mode, clients can access the server using
 .PP
 NOTE: in inetd mode access control checks are not performed and the
 allowed_hosts and denied_hosts options have no effect. Access controls can be
-implemented using using inetd or tcpd wrapper. See README.Debian for further
+implemented using using inetd or tcpd wrapper. See README for further
 details.
 .SH CGI Mode
 This is not recommended for long-term use because it brings a visible
-performance impact on the network and server speed.  By default, pkg\-cacher
+performance impact on the network and server speed.  The pkg\-cacher-cgi
 package adds a default configuration profile to Apache.  Clients can access the
 server using
 .B http://pkg\-cacher.server[:port]/pkg\-cacher/.
@@ -139,12 +139,6 @@ reports.
 Avoid any outgoing connection, return files available in the cache and just
 return errors if they are missing.
 .TP
-.B allowed_locations
-Only allow access to specific upstream mirrors. The requested URL must match an
-item in this list for access to be granted. The part of the URL referring to the
-pkg\-cacher server itself (http://pkg\-cacher.server:port[/pkg\-cacher]/) is
-ignored. Matching begins immediately after that.
-.TP
 .B path_map
 A mapping scheme to rewrite URLs, which converts the first part of the URL after
 the pkg\-cacher server name to a remote mirror. For example, if
@@ -154,17 +148,17 @@ path_map = debian ftp.debian.org/debian
 .IP "" 7
 retrieving 
 .IP "" 9
-http://pkg\-cacher.server:3142/debian/dists/stable/Release 
+http://pkg\-cacher.server/debian/dists/stable/Release 
 .IP "" 7
 will actually fetch
 .IP "" 9
-http://pkg\-cacher.server:3142/\:ftp.debian.org/debian/dists/stable/Release 
+http://ftp.debian.org/debian/dists/stable/Release 
 .TP  7
 .B generate_reports [1]
 Whether to generate traffic reports daily. Traffic reports can be accessed by
 pointing a browser to
 .IP
-http://pkg\-cacher.server:3142/report/ [daemon mode] or
+http://pkg\-cacher.server/report/ [daemon mode] or
 .IP
 http://pkg\-cacher.server[:port]/pkg\-cacher/report/ [CGI mode].
 .TP
@@ -218,10 +212,10 @@ from the upstream mirrors. Syntax is fully defined in wget(1).  Use 'k' or 'm'
 to use kilobits or megabits per second: e.g. 'limit=25k'.  Use 0 or a negative
 value for no rate limiting.
 .TP
-.B user [www-data]
+.B user [pkg-cacher]
 The effective user id to change to after allocating the ports. 
 .TP
-.B group [www-data]
+.B group [pkg-cacher]
 The effective group id to change to.
 .TP
 .B debug [0]
@@ -250,7 +244,7 @@ CURLINFO_SSL_DATA_OUT
 See CURLOPT_DEBUGFUNCTION in curl_easy_setopt(3) for further information.
 .SS Stand-alone Daemon\-mode Options
 .TP
-.B daemon_port [3142]
+.B daemon_port [80]
 The TCP port to bind to.
 .TP
 .B daemon_addr [unset]
@@ -298,43 +292,11 @@ or
 .IP "" 9
 deb http://pkg\-cacher.server[:port]/pkg\-cacher/ftp.debian.org stable main [server in CGI mode]
 .TP 
-.B Access cache like a proxy
-For clients to use the cache in this way, set the pkg\-cacher server as a proxy
-on each client by setting the proxy URL in pkg.conf (see pkg.conf(5) for
-details).
-.IP
-It is not recommended to set the http_proxy environment variable as this may
-effect a wide variety of applications using a variety of URLs. Pkg\-cacher will
-not work as a general purpose web cache!
 .PP
 .SH FAQ
 .B Q: Can I just copy some .debs into the cache dir and have it work (precaching)?
 .PP
-A: Almost! A bit additional work is also required to make them useable and
-persistent in the cache.
-.PP
-First: alongside with the debs pkg\-cacher stores additional information: a
-flag file to verify that the package is completely downloaded, and a file with
-HTTP headers that have been sent from the server.
-If you copy .debs straight into the storage directory and don't add those
-things, fetching them *will* fail.
-.PP
-Fortunately Pkg\-cacher now comes with an import helper script to make things
-easier. Just put a bunch of .debs into /var/cache/pkg\-cacher/import (or
-a directory called 'import' inside whatever you've set your cache dir to be),
-and run /usr/share/pkg\-cacher/pkg\-cacher\-import.pl (you can specify
-alternative source directory with the first parameter). The script will run
-through all the package files it finds in that dir and move them around to the
-correct locations plus create additional flag/header files. Run it with "\-h" to
-get more information about how to use additional features \- it can work in
-recursive mode while discovering the files and save space by making links to
-files located elsewhere in the filesystem.
-.PP
-Second: if the daily cleanup operation is enabled (see clean_cache option above)
-and there is no Packages.gz (or .bz2) file that refers to the new files, the
-package files will be removed really soon. From another point of view: if there are
-potential clients that would download these packages and the clients did run
-"pkg\-get update" using pkg\-cacher once, there is no reason to worry.
+A: No.
 .PP
 .B Q: Does the daily generation of reports or cleaning the cache depend
 .B on whether pkg\-cacher is running continuously as a daemon?
@@ -392,12 +354,12 @@ main configuration file
 .B /var/log/pkg\-cacher
 log directory, rotated by logrotate if available
 .TP
-.B /var/log/report.html
+.B /var/log/pkg\-cacher/report.html
 report page, generated by the helper script
 .SH AUTHOR
 Pkg\-cacher was originally written by Nick Andrews <nick@zeta.org.au>.  This
 manual page was originally written by Jonathan Oxer <jon@debian.org>, for the
 Debian GNU/Linux system (but may be used by others). It was maintained by Eduard
-Bloch <blade@debian.org>, and it is now maintained by Mark Hindley
-<mark@hindley.org.uk>.
+Bloch <blade@debian.org>, and it is now maintained by Robert Nelson 
+<robertn@the-nelsons.org>.
 

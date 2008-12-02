@@ -132,6 +132,11 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Mon Dec  1 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.7
+  - Change default port to 80.
+
+  - Update man page.
+
 * Sun Nov 11 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.6
   - Add support for RedHat .img files as static files.
 

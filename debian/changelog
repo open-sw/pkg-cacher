@@ -1,3 +1,11 @@
+pkg-cacher (0.9.7) unstable; urgency=low
+
+  * Change default port to 80.
+
+  * Update man page.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Mon, 01 Dec 2008 22:27:37 -0800
+
 pkg-cacher (0.9.6) unstable; urgency=low
 
   * Add support for RedHat .img files as static files.
