@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="chrome=1">
+    <title>Pkg-cacher by opensource-sw</title>
+
+    <link rel="stylesheet" href="stylesheets/styles.css">
+    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <!--[if lt IE 9]>
+    <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+  </head>
+  <body>
+    <div class="wrapper">
+      <header>
+        <h1>Pkg-cacher</h1>
+        <p>This is a transparent cache for Debian and RedHat packages (.deb and .rpm).  It is based on apt-cacher available on Debian. It has been enhanced to handle RedHat repositories and files whose names are the same but the contents are different.</p>
+
+        <p class="view"><a href="https://github.com/opensource-sw/pkg-cacher">View the Project on GitHub <small>opensource-sw/pkg-cacher</small></a></p>
+
+
+        <ul>
+          <li><a href="https://github.com/opensource-sw/pkg-cacher/zipball/master">Download <strong>ZIP File</strong></a></li>
+          <li><a href="https://github.com/opensource-sw/pkg-cacher/tarball/master">Download <strong>TAR Ball</strong></a></li>
+          <li><a href="https://github.com/opensource-sw/pkg-cacher">View On <strong>GitHub</strong></a></li>
+        </ul>
+      </header>
+      <section>
+        <h2>
+<a name="pkg-cacher-for-debian-ubuntu-redhat-centos-fedora-and-opensuse" class="anchor" href="#pkg-cacher-for-debian-ubuntu-redhat-centos-fedora-and-opensuse"><span class="octicon octicon-link"></span></a>pkg-cacher for Debian, Ubuntu, RedHat, CentOS, Fedora and OpenSUSE</h2>
+
+<p>IMPORTANT NOTES:<br>
+    The cache directory structure is incompatible with apt-cacher 
+    and apt-proxy.  Unfortunately there isn't enough information
+    available in the old directory structure so conversion of the
+    server isn't possible.</p>
+
+<pre><code>It should be possible to use pkg-cacher without reconfiguring
+existing apt-cacher (if path_map was used) or apt-proxy clients 
+although this hasn't been tested.
+</code></pre>
+
+<p>HISTORY:</p>
+
+<p>This program was originally written by Nick Andrews <a href="mailto:nick@zeta.org.au">nick@zeta.org.au</a>.</p>
+
+<p>Until version 0.6-1, the cache directory was left behind on uninstallation:
+however, that behaviour has now been changed so that the cache dir is left on
+upgrade, but deleted on uninstallation. The cache dir can become very large so
+it needs to be deleted when the program is no longer required, but to maintain
+cache efficiency it needs to be retained on upgrade.</p>
+
+<p>In April/May 2005, the main script has been partially rewritten by Eduard
+Bloch. It was converted to use separate files for package contents (read: the
+real DEBs) and the HTTP headers. Also time stamping for meta files has been
+introduced and curl was chosen as the default fetcher application.  Also the
+usage of alternative HTTP daemons has been allowed.</p>
+
+<p>-- Mark Hindley <a href="mailto:mark@hindley.org.uk">mark@hindley.org.uk</a>, Thu, 20 Mar 2008 20:11:38 z</p>
+
+<p>Large parts have been rewritten to support multiple distributions and new
+features. The original version of this file has been renamed README.Debian-old.</p>
+
+<p>To see a complete list of changes view the changelog file.</p>
+
+<p>Documentation is provided in the man page.</p>
+
+<p>-- Robert Nelson <a href="mailto:robertn@the-nelsons.org">robertn@the-nelsons.org</a>, Sun, 09 Nov 2008 12:41:59 -0800</p>
+      </section>
+      <footer>
+        <p>This project is maintained by <a href="https://github.com/opensource-sw">opensource-sw</a></p>
+        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
+      </footer>
+    </div>
+    <script src="javascripts/scale.fix.js"></script>
+    
+  </body>
+</html>
