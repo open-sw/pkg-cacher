@@ -9,15 +9,15 @@ Sources\.bz2
 Contents-.+\.gz
 \d{4}-\d{2}-\d{2}-\d{4}\.\d+\.gz
 # Redhat files
-comps.*\.xml
-.+-comps\.xml
-.+-comps\.xml\.gz
-filelists\.sqlite\.bz2
-filelists\.xml\.gz
-other\.sqlite\.bz2
-other\.xml\.gz
-primary\.sqlite\.bz2
-primary\.xml\.gz
+([0-9a-fA-F]+-)?comps.*\.xml(\.gz)?
+([0-9a-fA-F]+-)?filelists\.sqlite\.bz2
+([0-9a-fA-F]+-)?filelists\.xml\.gz
+([0-9a-fA-F]+-)?other\.sqlite\.bz2
+([0-9a-fA-F]+-)?other\.xml\.gz
+([0-9a-fA-F]+-)?pkgtags\.sqlite\.gz
+([0-9a-fA-F]+-)?prestodelta\.xml\.gz
+([0-9a-fA-F]+-)?primary\.sqlite\.bz2
+([0-9a-fA-F]+-)?primary\.xml\.gz
 repomd\.xml
 updateinfo\.xml\.gz
 # OpenSuSE files
