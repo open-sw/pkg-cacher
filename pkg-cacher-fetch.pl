@@ -7,7 +7,7 @@
 
  Copyright (C) 2005 Eduard Bloch <blade@debian.org>
  Copyright (C) 2007 Mark Hindley <mark@hindley.org.uk>
- Copyright (C) 2008 Robert Nelson <robertn@the-nelsons.org>
+ Copyright (C) 2008-2013 Robert Nelson <robertn@the-nelsons.org>
  Distributed under the terms of the GNU Public Licence (GPL).
 
 =cut
@@ -252,6 +252,26 @@ sub fetch_store {
     if ($response->is_success) {
 		debug_message("stored $url as $cached_file");
 
+		# sanity check that file size on disk matches the content-length in the header
+		my $expected_length = 0;
+		if (open(my $chdfd, $cached_head)) {
+			LINE:
+			for(<$chdfd>){
+				if(/^Content-Length:\s*(\d+)/) {
+					$expected_length = $1;
+					last LINE;
+				}
+			}
+			close($chdfd);
+		}
+
+		my $file_size = -s $cached_file;
+
+		if ($file_size != $expected_length) {
+			unlink($cached_file);
+			barf("$cached_file is the wrong size, expected $expected_length, got $file_size");
+		}
+
 		# assuming here that the filesystem really closes the file and writes
 		# it out to disk before creating the complete flag file
 
@@ -261,7 +281,7 @@ sub fetch_store {
 			barf("Unable to calculate SHA-1 sum for $cached_file - error = $?");
 		}
 
-		($sha1sum) = $sha1sum =~ /([0-9A-Za-z]+) +.*/;
+		($sha1sum) = $sha1sum =~ /([0-9A-Fa-f]+) +.*/;
 
 		debug_message("sha1sum $cached_file = $sha1sum");
 

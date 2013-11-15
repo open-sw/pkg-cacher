@@ -826,15 +826,7 @@ sub return_file {
 
 				if ($complete_found) {
 					# complete file was found in the previous iteration
-					# this is the loop exit condition
-					#
-					# final check on size
-#					if ($total_length && $curlen != $total_length) {
-#						info_message("ALARM! $cached_file file size mismatch (found $curlen, expected $total_length). Renaming to $cached_file.corrupted.");
-#						unlink "$cached_file.corrupted";
-#						rename($cached_file, "$cached_file.corrupted");
-#						exit(5); # Header already sent, can't notify error
-#					}
+-                   # this is the loop exit condition
 					last CHUNK;
 				}
 
