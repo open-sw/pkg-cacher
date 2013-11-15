@@ -133,6 +133,14 @@ rm -rf $RPM_BUILD_ROOT
 
 %changelog
 * Fri Nov 15 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.0
+  - Update version to 1.0.0.
+
+  - Update Fedora download path.
+
+  - Improve redirect handling, ignoring ftp sites.
+
+  - Add support for Apache 2.4.
+
   - Add sanity check on size of downloaded file.
 
   - Update index file regexps for RedHat.

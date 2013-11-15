@@ -1,5 +1,13 @@
 pkg-cacher (1.0.0) stable; urgency=low
 
+  * Update version to 1.0.0.
+
+  * Update Fedora download path.
+
+  * Improve redirect handling, ignoring ftp sites.
+
+  * Add support for Apache 2.4.
+
   * Add sanity check on size of downloaded file.
 
   * Update index file regexps for RedHat.
