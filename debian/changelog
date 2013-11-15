@@ -1,3 +1,11 @@
+pkg-cacher (1.0.0) stable; urgency=low
+
+  * Add sanity check on size of downloaded file.
+
+  * Update index file regexps for RedHat.
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Thu, 14 Nov 2013 17:04:55 -0800
+
 pkg-cacher (0.9.7) unstable; urgency=low
 
   * Change default port to 80.

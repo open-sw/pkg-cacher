@@ -1,6 +1,6 @@
 NAME=pkg-cacher
-VERSION=0.9.7
-TAROPTS=--directory .. --exclude=.svn --exclude='*.swp' --exclude='*~' --dereference 
+VERSION=1.0.0
+TAROPTS=--directory .. --exclude=.git --exclude=.svn --exclude='*.swp' --exclude='*~' --dereference 
 
 PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-request.pl pkg-cacher-fetch.pl \
 			pkg-cacher-lib.pl \

@@ -132,6 +132,11 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Fri Nov 15 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.0
+  - Add sanity check on size of downloaded file.
+
+  - Update index file regexps for RedHat.
+
 * Mon Dec  1 2008 Robert Nelson ( robertn@the-nelsons.org ) - 0.9.7
   - Change default port to 80.
 
