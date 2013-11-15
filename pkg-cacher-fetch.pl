@@ -145,7 +145,7 @@ sub debug_callback {
 sub libcurl {
 	my ($vhost, $uri, $pkfdref) = @_;
 
-	my $url="http://$vhost$uri";
+	my $url;
 	my $curl = ${&setup_curl};
 
 	my $hostcand;
@@ -158,7 +158,9 @@ sub libcurl {
 		# but since the fetcher process dies anyway it does not matter.
 		$hostcand = shift(@{$pathmap{$vhost}});
 		debug_message("Candidate: $hostcand");
-		$url=($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
+		$url = ($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
+
+		my $redirect_count = 0;
 
 		while () {
 			if (!$pkfdref) {
@@ -179,7 +181,7 @@ sub libcurl {
 			debug_message("download agent: getting $url");
 
 			if ($curl->perform) { # error
-				$response=HTTP::Response->new(502);
+				$response = HTTP::Response->new(502);
 				$response->protocol('HTTP/1.1');
 				$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
 				info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
@@ -194,10 +196,23 @@ sub libcurl {
 			}
 
 			# It is a redirect
-			info_message('libcurl got redirect for '.$url);
 
 			$url = $response->header("Location");
-			info_message('Redirecting to '.$url);
+
+			$redirect_count++;
+			if ($redirect_count > 5) {
+				info_message("Redirect count exceeded, trying next host in path_map");
+				last;
+			}
+			
+			if ($url =~ /^ftp:/) {
+				# Redirected to an ftp site which won't work, try again
+				info_message("Ignoring redirect to $url");
+				$url = ($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
+			} else {
+				info_message('Redirecting to '.$url);
+			}
+
 			$response = new HTTP::Response;
 			if ($pkfdref) {
 				truncate($$pkfdref, 0);
@@ -249,7 +264,7 @@ sub fetch_store {
 
 	debug_message('libcurl returned');
 
-    if ($response->is_success) {
+	if ($response->is_success) {
 		debug_message("stored $url as $cached_file");
 
 		# sanity check that file size on disk matches the content-length in the header
