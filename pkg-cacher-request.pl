@@ -7,7 +7,7 @@
 
  Copyright (C) 2005 Eduard Bloch <blade@debian.org>
  Copyright (C) 2007 Mark Hindley <mark@hindley.org.uk>
- Copyright (C) 2008 Robert Nelson <robertn@the-nelsons.org>
+ Copyright (C) 2008-2013 Robert Nelson <robertn@the-nelsons.org>
  Distributed under the terms of the GNU Public Licence (GPL).
 
 =cut
@@ -826,15 +826,7 @@ sub return_file {
 
 				if ($complete_found) {
 					# complete file was found in the previous iteration
-					# this is the loop exit condition
-					#
-					# final check on size
-#					if ($total_length && $curlen != $total_length) {
-#						info_message("ALARM! $cached_file file size mismatch (found $curlen, expected $total_length). Renaming to $cached_file.corrupted.");
-#						unlink "$cached_file.corrupted";
-#						rename($cached_file, "$cached_file.corrupted");
-#						exit(5); # Header already sent, can't notify error
-#					}
+-                   # this is the loop exit condition
 					last CHUNK;
 				}
 
