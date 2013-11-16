@@ -3,9 +3,10 @@
 # pkg-cacher-cleanup.pl
 # Script to clean the cache for the Pkg-cacher package caching system.
 #
-# Copyright (C) 2005, Eduard Bloch <blade@debian.org>
-# Copyright (C) 2002-03, Jonathan Oxer <jon@debian.org>
 # Portions  (C) 2002, Jacob Lundberg <jacob@chaos2.org>
+# Copyright (C) 2002-03, Jonathan Oxer <jon@debian.org>
+# Copyright (C) 2005, Eduard Bloch <blade@debian.org>
+# Copyright (C) 2008-2013 Robert Nelson <robertn@the-nelsons.org>
 # Distributed under the terms of the GNU Public Licence (GPL).
 
 
