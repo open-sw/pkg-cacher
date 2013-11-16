@@ -6,6 +6,7 @@ Release
 Release\.gpg
 Sources\.gz
 Sources\.bz2
+Translation-.*.bz2
 Contents-.+\.gz
 \d{4}-\d{2}-\d{2}-\d{4}\.\d+\.gz
 # Redhat files
