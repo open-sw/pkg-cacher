@@ -2,6 +2,17 @@ pkg-cacher (1.0.0) stable; urgency=low
 
   * Update version to 1.0.0.
 
+  * Write pkg-cacher.conf to pkg-cacher.conf.rpmnew if existing one is
+    modified.
+
+  * Update Debian debhelper compatibility to level 7
+
+  * Change pkg-cacher pointer to SourceForge in generated report.
+
+  * Fix permissions on cron script.
+
+  * Force ordinal numbers instead of dates on rotated logs.
+
   * Add Debian Translation-*.bz2 to index_files.regexp.
 
   * Update Fedora download path.
@@ -14,7 +25,7 @@ pkg-cacher (1.0.0) stable; urgency=low
 
   * Update index file regexps for RedHat.
 
- -- Robert Nelson <robertn@the-nelsons.org>  Thu, 14 Nov 2013 17:04:55 -0800
+ -- Robert Nelson <robertn@the-nelsons.org>  Sat, 16 Nov 2013 11:40:25 -0800
 
 pkg-cacher (0.9.7) unstable; urgency=low
 

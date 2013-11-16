@@ -79,7 +79,7 @@ make DESTDIR=$RPM_BUILD_ROOT install-link
 /usr/share/pkg-cacher/*
 %attr(-,pkg-cacher,pkg-cacher) %dir /var/cache/pkg-cacher
 %attr(-,pkg-cacher,pkg-cacher) %dir /var/log/pkg-cacher
-%config /etc/pkg-cacher/pkg-cacher.conf
+%config(noreplace) /etc/pkg-cacher/pkg-cacher.conf
 %config /etc/pkg-cacher/apache.conf
 %config /etc/cron.daily/pkg-cacher
 %config /etc/logrotate.d/pkg-cacher
@@ -132,8 +132,19 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Fri Nov 15 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.0
+* Sat Nov 16 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.0
   - Update version to 1.0.0.
+
+  - Write pkg-cacher.conf to pkg-cacher.conf.rpmnew if existing one is
+    modified.
+
+  - Update Debian debhelper compatibility to level 7
+
+  - Change pkg-cacher pointer to SourceForge in generated report.
+
+  - Fix permissions on cron script.
+
+  - Force ordinal numbers instead of dates on rotated logs.
 
   - Add Debian Translation-*.bz2 to index_files.regexp.
 

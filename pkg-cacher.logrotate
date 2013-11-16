@@ -1,14 +1,15 @@
 /var/log/pkg-cacher/*.log {
-        monthly
-        missingok
-        rotate 12
-        compress
-        delaycompress
-        notifempty
-        create
+	monthly
+	nodateext
+	missingok
+	rotate 12
+	compress
+	delaycompress
+	notifempty
+	create
 	postrotate
 		if [ -f /var/run/pkg-cacher.pid ]; then
-	                invoke-rc.d --quiet pkg-cacher restart > /dev/null 2>&1
+			/etc/init.d/pkg-cacher restart > /dev/null 2>&1
 		fi
 	endscript
 }
