@@ -25,7 +25,7 @@ use Cwd;
 
 use Fcntl qw/:DEFAULT :flock F_SETFD/;
 use Getopt::Long qw(:config no_ignore_case bundling pass_through);
-use Digest::SHA1;
+use Digest::SHA;
 use HTTP::Date;
 
 my $configfile = '/etc/pkg-cacher/pkg-cacher.conf';
@@ -204,7 +204,7 @@ sub pdiff {
 	return;
     }
 
-    my $sha1 = Digest::SHA1->new;
+    my $sha1 = Digest::SHA->new;
     my $digest;
 
     # Check size first
@@ -682,7 +682,7 @@ for(<*.deb>, <*.udeb>, <*.bz2>, <*.gz>, <*.dsc>) {
 #	    print "Validating SHA1 $target_sum for $_\n";
 	    open(my $fh, $_) || die "Unable to open file $_ to verify checksum: $!";
 	    flock($fh, LOCK_EX);
-	    if (Digest::SHA1->new->addfile(*$fh)->hexdigest ne $target_sum) {
+	    if (Digest::SHA->new->addfile(*$fh)->hexdigest ne $target_sum) {
 		unlink $_, "../headers/$_", "../private/$_.complete" unless $sim_mode;
 		printmsg "Checksum mismatch: $_, removing\n";
 	    }
