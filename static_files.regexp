@@ -5,6 +5,7 @@
 \.diff\.gz
 # Redhat files
 \.rpm
+\.drpm
 \.img
 RPM-GPG-KEY.*
 # SuSE files
