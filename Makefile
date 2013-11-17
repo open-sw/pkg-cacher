@@ -37,7 +37,7 @@ rpms: tar
 	mv $(RPMDIR)/noarch/$(NAME)-*$(VERSION)*.noarch.rpm $(DESTDIR)/$(NAME)
 
 debs: $(DESTDIR)/debian
-	fakeroot dpkg-buildpackage -I.svn -us -uc
+	fakeroot dpkg-buildpackage -I.svn -I.git -us -uc
 	mv ../$(NAME)*_$(VERSION)* $(DESTDIR)/debian
 
 clean:
