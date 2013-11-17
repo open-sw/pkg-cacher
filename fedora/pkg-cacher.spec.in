@@ -42,9 +42,9 @@ Group: Applications/System
 Requires: pkg-cacher = %{version}
 Conflicts: pkg-cacher-cgi
 %description sa
-This package installs and configures pkg-cacher as a cgi script under Apache.
+This package installs and configures pkg-cacher as a standalone server.
 
-Install pkg-cacher-sa instead if a standalone server is desired.
+Install pkg-cacher-cgi instead if a cgi script under Apache is desired.
 
 %package cgi
 Summary:  Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
@@ -52,9 +52,9 @@ Group: Applications/System
 Requires: pkg-cacher = %{version}
 Conflicts: pkg-cacher-sa
 %description cgi
-This package installs and configures pkg-cacher as a standalone server.
+This package installs and configures pkg-cacher as a cgi script under Apache.
 
-Install pkg-cacher-cgi instead if a cgi script under Apache is desired.
+Install pkg-cacher-sa instead if a standalone server is desired.
 
 %prep
 %setup -q
@@ -134,6 +134,8 @@ rm -rf $RPM_BUILD_ROOT
 %changelog
 * Sat Nov 16 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.0
   - Update version to 1.0.0.
+
+  - Swap descriptions for pkg-cacher-cgi and pkg-cacher-sa, they were backwards.
 
   - Write pkg-cacher.conf to pkg-cacher.conf.rpmnew if existing one is
     modified.
