@@ -1,1 +1,14 @@
+debian/files
+debian/pkg-cacher
+debian/pkg-cacher.debhelper.log
+debian/pkg-cacher.substvars
+debian/pkg-cacher-cgi
+debian/pkg-cacher-cgi.debhelper.log
+debian/pkg-cacher-cgi.substvars
+debian/pkg-cacher-sa
+debian/pkg-cacher-sa.debhelper.log
+debian/pkg-cacher-sa.postinst.debhelper
+debian/pkg-cacher-sa.postrm.debhelper
+debian/pkg-cacher-sa.prerm.debhelper
+debian/pkg-cacher-sa.substvars
 fedora/pkg-cacher.spec
