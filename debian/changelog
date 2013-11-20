@@ -1,3 +1,16 @@
+pkg-cacher (1.0.1) stable; urgency=medium
+  * Update version to 1.0.1
+
+  * Add .drpm to static_files.regexp (completes deltarpm support)
+
+  * Fix Ubuntu compatibility issues
+
+    - Upgrade to Digest::SHA from Digest::SHA1
+
+    - /bin/bash for debian/pkg-cacher-sa.postinst
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Tue, 19 Nov 2013 15:58:13 -0800
+
 pkg-cacher (1.0.0) stable; urgency=low
 
   * Update version to 1.0.0.
