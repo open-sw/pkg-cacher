@@ -132,6 +132,17 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Tue Nov 19 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.1
+  - Update version to 1.0.1
+
+  - Add .drpm to static_files.regexp (completes deltarpm support)
+
+  - Fix Ubuntu compatibility issues
+
+    * Upgrade to Digest::SHA from Digest::SHA1
+
+    * /bin/bash for debian/pkg-cacher-sa.postinst
+
 * Sat Nov 16 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.0
   - Update version to 1.0.0.
 
