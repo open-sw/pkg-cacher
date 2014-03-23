@@ -26,6 +26,7 @@ use File::Path;
 
 # Data shared between files
 
+our $version;
 our $cfg;
 our %pathmap;
 
@@ -52,16 +53,16 @@ sub head_callback {
 			last SWITCH;
 		};
 		/^\S+: \S+/ && do {
-			# debug_message("Got header $chunk\n");
+			# debug_message("fetch: Got header $chunk\n");
 			$response->headers->push_header(split /: /, $chunk);
 			last SWITCH;
 		};
 		/^\r\n$/ && do {
-			debug_message("libcurl download of headers complete");	
+			debug_message("fetch: libcurl download of headers complete");
 			&write_header(\$response) if $write;
 			last SWITCH;
 		};
-		info_message("Warning, unrecognised line in head_callback: $chunk");
+		info_message("fetch: warning, unrecognised line in head_callback: $chunk");
 	}
 	return length($chunk); # OK
 }
@@ -78,8 +79,12 @@ sub write_header {
 sub body_callback {
 	my ($chunk, $handle) = @_;
 
-	# debug_message("Body callback got ".length($chunk)." bytes for $handle\n");
-	print $handle $chunk || return -1;
+	# debug_message("fetch: Body callback got ".length($chunk)." bytes for $handle\n");
+
+	# handle is undefined if HEAD, in that case body is usually an error message
+	if (defined $handle) {
+		print $handle $chunk || return -1;
+	}
 
 	return length($chunk); # OK
 }
@@ -97,11 +102,11 @@ sub debug_callback {
 
 		return \$curl if (defined($curl));
 		
-		debug_message('Init new libcurl object');
+		debug_message('fetch: init new libcurl object');
 		$curl=new WWW::Curl::Easy;
 
 		# General
-		$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version ".$curl->version);
+		$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version (".$curl->version.")");
 		$curl->setopt(CURLOPT_NOPROGRESS, 1);
 		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 60);
 		$curl->setopt(CURLOPT_NOSIGNAL, 1);
@@ -133,7 +138,7 @@ sub debug_callback {
 			warn "Unrecognised limit: $_. Ignoring.";
 		}
 		if ($maxspeed) {
-			debug_message("Setting bandwidth limit to $maxspeed");
+			debug_message("fetch: Setting bandwidth limit to $maxspeed");
 			$curl->setopt(CURLOPT_MAX_RECV_SPEED_LARGE, $maxspeed);
 		}
 
@@ -150,67 +155,85 @@ sub libcurl {
 
 	my $hostcand;
 	my $response;
+	my @headers;
+
+	if (! grep /^Pragma:/, @cache_control) {
+		# Remove libcurl default.
+		push @headers, 'Pragma:';
+	} else {
+		push @headers, @cache_control;
+	}
+
+	my @hostpaths = @{$pathmap{$vhost}};
 
 	PROCESS_HOST: while () {
 		$response = new HTTP::Response;
 
-		# make the virtual hosts real. The list is reduced which is not so smart,
-		# but since the fetcher process dies anyway it does not matter.
-		$hostcand = shift(@{$pathmap{$vhost}});
-		debug_message("Candidate: $hostcand");
-		$url = ($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
+		# make the virtual hosts real. 
+		$hostcand = shift(@hostpaths);
+		debug_message("fetch: Candidate: $hostcand");
+		$url = $hostcand = ($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
 
 		my $redirect_count = 0;
+		my $retry_count = 0;
 
 		while () {
 			if (!$pkfdref) {
-				debug_message ('download agent: setting up for HEAD request');
+				debug_message ('fetch: setting up for HEAD request');
 				$curl->setopt(CURLOPT_NOBODY,1);
 			} else {
-				debug_message ('download agent: setting up for GET request');
+				debug_message ('fetch: setting up for GET request');
 				$curl->setopt(CURLOPT_HTTPGET,1);
 				$curl->setopt(CURLOPT_FILE, $$pkfdref);
 			}
 
-			push @cache_control, 'Pragma:'
-				if ! grep /^Pragma:/, @cache_control; # Override libcurl default.
-			$curl->setopt(CURLOPT_HTTPHEADER, \@cache_control);				
+			$curl->setopt(CURLOPT_HTTPHEADER, \@headers);
 			$curl->setopt(CURLOPT_WRITEHEADER, [\$response, ($pkfdref ? 1 : 0)]);
 			$curl->setopt(CURLOPT_URL, $url);
 
-			debug_message("download agent: getting $url");
+			debug_message("fetch: getting $url");
 
 			if ($curl->perform) { # error
 				$response = HTTP::Response->new(502);
 				$response->protocol('HTTP/1.1');
 				$response->message('pkg-cacher: libcurl error: '.$curl->errbuf);
-				info_message("Warning: libcurl failed for $url with ".$curl->errbuf);
+				error_message("fetch: error - libcurl failed for $url with ".$curl->errbuf);
 				write_header(\$response); # Replace with error header
 			}
 
 			$response->request($url);
 
-			if (!$response->is_redirect()) {
-				# It isn't a redirect so we are done
-				last;
-			}
+			if ($curl->getinfo(CURLINFO_HTTP_CODE) == '000') {
+				$retry_count++;
+				if ($retry_count > 5) {
+					info_message("fetch: retry count exceeded, trying next host in path_map");
+					last;
+				}
 
-			# It is a redirect
+				info_message("fetch: Retrying due to no response code from $url");
 
-			$url = $response->header("Location");
+				$url = $hostcand;
 
-			$redirect_count++;
-			if ($redirect_count > 5) {
-				info_message("Redirect count exceeded, trying next host in path_map");
-				last;
-			}
-			
-			if ($url =~ /^ftp:/) {
-				# Redirected to an ftp site which won't work, try again
-				info_message("Ignoring redirect to $url");
-				$url = ($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
+			} elsif ($response->is_redirect()) {
+				$redirect_count++;
+				if ($redirect_count > 5) {
+					info_message("fetch: redirect count exceeded, trying next host in path_map");
+					last;
+				}
+
+				my $newurl = $response->header("Location");
+
+				if ($newurl =~ /^ftp:/) {
+					# Redirected to an ftp site which won't work, try again
+					info_message("fetch: ignoring redirect from $url to $newurl");
+					$url = $hostcand;
+				} else {
+					info_message("fetch: redirecting from $url to $newurl");
+					$url = $newurl
+				}
 			} else {
-				info_message('Redirecting to '.$url);
+				# It isn't a redirect or a misformed response so we are done
+				last;
 			}
 
 			$response = new HTTP::Response;
@@ -221,9 +244,8 @@ sub libcurl {
 			unlink($cached_head, $complete_file);
 		}
 
-		# if okay or the last candidate fails, put it back into the list and return
-		if ($response->is_success || ! @{$pathmap{$vhost}} ) {
-			unshift(@{$pathmap{$vhost}}, $hostcand);
+		# if okay or the last candidate fails return
+		if ($response->is_success || ! @hostpaths ) {
 			last;
 		}
 
@@ -234,7 +256,7 @@ sub libcurl {
 		}
 	}
 
-	debug_message("libcurl: response =\n".$response->as_string."\n");
+	debug_message("fetch: libcurl response =\n".$response->as_string."\n");
 
 	return \$response;
 }
@@ -248,7 +270,7 @@ sub fetch_store {
 	($filename) = ($uri =~ /\/?([^\/]+)$/);
 
 	my $url = "http://$host$uri";
-	debug_message("fetcher: try to fetch $url");
+	debug_message("fetch: try to fetch $url");
 
 	sysopen(my $pkfd, $cached_file, O_RDWR)
 		|| barf("Unable to open $cached_file for writing: $!");
@@ -262,13 +284,13 @@ sub fetch_store {
 	flock($pkfd, LOCK_UN);
 	close($pkfd) || warn "Close $cached_file failed, $!";
 
-	debug_message('libcurl returned');
+	debug_message('fetch: libcurl returned');
 
 	if ($response->is_success) {
-		debug_message("stored $url as $cached_file");
+		debug_message("fetch: stored $url as $cached_file");
 
 		# sanity check that file size on disk matches the content-length in the header
-		my $expected_length = 0;
+		my $expected_length = -1;
 		if (open(my $chdfd, $cached_head)) {
 			LINE:
 			for(<$chdfd>){
@@ -282,9 +304,16 @@ sub fetch_store {
 
 		my $file_size = -s $cached_file;
 
-		if ($file_size != $expected_length) {
-			unlink($cached_file);
-			barf("$cached_file is the wrong size, expected $expected_length, got $file_size");
+		if ($expected_length != -1) {
+			if ($file_size != $expected_length) {
+				unlink($cached_file);
+				barf("$cached_file is the wrong size, expected $expected_length, got $file_size");
+			}
+		} else {
+			# There was no Content-Length header so chunked transfer, manufacture one
+			open (my $chdfd, ">>$cached_head") || barf("Unable to open $cached_head, $!");
+			printf $chdfd "Content-Length: %d\r\n", $file_size;
+			close($chdfd);
 		}
 
 		# assuming here that the filesystem really closes the file and writes
@@ -298,7 +327,7 @@ sub fetch_store {
 
 		($sha1sum) = $sha1sum =~ /([0-9A-Fa-f]+) +.*/;
 
-		debug_message("sha1sum $cached_file = $sha1sum");
+		debug_message("fetch: sha1sum $cached_file = $sha1sum");
 
 		&set_global_lock(': link to cache');
 		
@@ -311,16 +340,16 @@ sub fetch_store {
 
 		&release_global_lock;
 
-		debug_message("setting complete flag for $filename");
+		debug_message("fetch: setting complete flag for $filename");
 		# Now create the file to show the pickup is complete, also store the original URL there
 		open(MF, ">$complete_file") || die $!;
 		print MF $response->request;
 		close(MF);
 	} elsif (HTTP::Status::is_client_error($response->code)) {
-		debug_message('Upstream server returned error '.$response->code." for ".$response->request.". Deleting $cached_file.");
+		debug_message('fetch: upstream server returned error '.$response->code." for ".$response->request.". Deleting $cached_file.");
 		unlink $cached_file;
 	}
-	debug_message('fetcher done');
+	debug_message('fetch: fetcher done');
 }
 
 1;
