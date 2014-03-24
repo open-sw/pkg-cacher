@@ -1,3 +1,12 @@
+pkg-cacher (1.0.2) stable; urgency=high
+  * Update version to 1.0.2
+
+  * Support chunked file transfers which don't have Content-Length Headers
+
+  * Retry requests that return bogus responses without headers
+
+ -- Robert Nelson <robertn@the-nelsons.org>  Sun, 23 Mar 2014 20:36:22 -0700
+
 pkg-cacher (1.0.1) stable; urgency=medium
   * Update version to 1.0.1
 

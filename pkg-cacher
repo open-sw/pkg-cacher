@@ -31,7 +31,8 @@ use File::Path;
 require 'pkg-cacher-lib.pl';
 
 # Set some defaults
-our $version="1.0.0-1";
+our $version="1.0.2";
+
 my $configfile_default = '/etc/pkg-cacher/pkg-cacher.conf';
 
 our $configfile = $configfile_default;
