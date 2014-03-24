@@ -132,6 +132,13 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Sun Mar 23 2014 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.2
+  - Update version to 1.0.2
+
+  - Support chunked file transfers which don't have Content-Length Headers
+
+  - Retry requests that return bogus responses without headers
+
 * Tue Nov 19 2013 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.1
   - Update version to 1.0.1
 
