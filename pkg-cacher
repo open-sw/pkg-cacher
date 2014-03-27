@@ -269,6 +269,11 @@ sub info_message {
 	writeerrorlog("info [$$]: $message");
 }
 
+sub error_message {
+	my $message = shift;
+	writeerrorlog("error [$$]: $message");
+}
+
 sub open_log_files {
 	my $logfile = "$cfg->{logdir}/access.log";
 	my $errorfile = "$cfg->{logdir}/error.log";
