@@ -123,11 +123,11 @@ sub debug_callback {
 		# $curl->setopt(CURLOPT_DEBUGFUNCTION, \&debug_callback);
 		# $curl->setopt(CURLOPT_VERBOSE, $cfg->{debug});
 
-		# Proxy
-		$curl->setopt(CURLOPT_PROXY, $cfg->{http_proxy})
-			if ($cfg->{use_proxy} && $cfg->{http_proxy});
-		$curl->setopt(CURLOPT_PROXYUSERPWD, $cfg->{http_proxy_auth})
-			if ($cfg->{use_proxy_auth});
+		# SSL
+		if (! $cfg->{require_valid_ssl}) {
+			$curl->setopt(CURLOPT_SSL_VERIFYPEER, 0);
+			$curl->setopt(CURLOPT_SSL_VERIFYHOST, 0);
+		}
 		
 		# Rate limit support
 		my $maxspeed;
@@ -172,8 +172,20 @@ sub libcurl {
 		# make the virtual hosts real. 
 		$hostcand = shift(@hostpaths);
 		debug_message("fetch: Candidate: $hostcand");
-		$url = $hostcand = ($hostcand =~ /^http:/ ? '' : 'http://').$hostcand.$uri;
+		$url = $hostcand = ($hostcand =~ /^https?:/ ? '' : 'http://').$hostcand.$uri;
 
+		# Proxy - SSL or otherwise - Needs to be set per host
+		if ($url =~ /^https:/) {
+			$curl->setopt(CURLOPT_PROXY, $cfg->{https_proxy})
+				if ($cfg->{use_proxy} && $cfg->{https_proxy});
+			$curl->setopt(CURLOPT_PROXYUSERPWD, $cfg->{https_proxy_auth})
+				if ($cfg->{use_proxy_auth});
+		} else {
+			$curl->setopt(CURLOPT_PROXY, $cfg->{http_proxy})
+				if ($cfg->{use_proxy} && $cfg->{http_proxy});
+			$curl->setopt(CURLOPT_PROXYUSERPWD, $cfg->{http_proxy_auth})
+				if ($cfg->{use_proxy_auth});
+		}
 		my $redirect_count = 0;
 		my $retry_count = 0;
 
