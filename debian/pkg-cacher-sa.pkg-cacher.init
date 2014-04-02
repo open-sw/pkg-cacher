@@ -7,7 +7,7 @@
 # Should-Start:      mountall
 # Required-Stop:     
 # Should-Stop:       
-# Default-Start:     S 2 3 4 5
+# Default-Start:     2 3 4 5
 # Default-Stop:      0 6
 # Short-Description: pkg-cacher package caching proxy daemon 
 # Description:       The pkg-cacher service is used to cache packages for a system or LAN

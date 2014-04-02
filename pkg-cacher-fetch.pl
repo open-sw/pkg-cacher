@@ -103,10 +103,10 @@ sub debug_callback {
 		return \$curl if (defined($curl));
 		
 		debug_message('fetch: init new libcurl object');
-		$curl=new WWW::Curl::Easy;
+		$curl = WWW::Curl::Easy->new();
 
 		# General
-		$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version (".$curl->version.")");
+		$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version (".$curl->version.')');
 		$curl->setopt(CURLOPT_NOPROGRESS, 1);
 		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 60);
 		$curl->setopt(CURLOPT_NOSIGNAL, 1);
@@ -167,7 +167,7 @@ sub libcurl {
 	my @hostpaths = @{$pathmap{$vhost}};
 
 	PROCESS_HOST: while () {
-		$response = new HTTP::Response;
+		$response = HTTP::Response->new();
 
 		# make the virtual hosts real. 
 		$hostcand = shift(@hostpaths);
@@ -215,14 +215,16 @@ sub libcurl {
 
 			$response->request($url);
 
-			if ($curl->getinfo(CURLINFO_HTTP_CODE) == '000') {
+			my $httpcode = $curl->getinfo(CURLINFO_HTTP_CODE);
+
+			if ($httpcode == 000 || $httpcode == 400) {
 				$retry_count++;
 				if ($retry_count > 5) {
 					info_message("fetch: retry count exceeded, trying next host in path_map");
 					last;
 				}
 
-				info_message("fetch: Retrying due to no response code from $url");
+				info_message("fetch: Retrying due to bad request or no response code from $url");
 
 				$url = $hostcand;
 
@@ -241,14 +243,14 @@ sub libcurl {
 					$url = $hostcand;
 				} else {
 					info_message("fetch: redirecting from $url to $newurl");
-					$url = $newurl
+					$url = $newurl;
 				}
 			} else {
-				# It isn't a redirect or a misformed response so we are done
+				# It isn't a redirect or a malformed response so we are done
 				last;
 			}
 
-			$response = new HTTP::Response;
+			$response = HTTP::Response->new();
 			if ($pkfdref) {
 				truncate($$pkfdref, 0);
 				sysseek($$pkfdref, 0, 0);

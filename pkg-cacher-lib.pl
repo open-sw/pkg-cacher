@@ -54,7 +54,7 @@ sub read_config {
 		allowed_hosts_6 => '*',
 		allowed_hosts => '*',
 		limit => 0,
-		daemon_port => 3142,
+		daemon_port => 8080,
 		fetch_timeout => 300 # five minutes from now
 	);
 
@@ -101,9 +101,9 @@ sub check_install() {
 	}
 
 	foreach my $dir ($cfg->{cache_dir}, $cfg->{logdir}, 
-		    "$cfg->{cache_dir}/headers", "$cfg->{cache_dir}/import",
-		    "$cfg->{cache_dir}/packages", "$cfg->{cache_dir}/private",
-		    "$cfg->{cache_dir}/temp", "$cfg->{cache_dir}/cache") {
+			"$cfg->{cache_dir}/headers", "$cfg->{cache_dir}/packages",
+			"$cfg->{cache_dir}/private", "$cfg->{cache_dir}/temp",
+			"$cfg->{cache_dir}/cache") {
 		if (!-d $dir) {
 			print "Warning: $dir missing. Doing mkdir($dir, 0755)\n";
 			mkdir($dir, 0755) || die "Unable to create $dir";

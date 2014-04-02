@@ -27,7 +27,7 @@ case "$1" in
     configure)
 
     	test -d /var/cache/pkg-cacher || {
-		mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
+		mkdir /var/cache/pkg-cacher{,/cache,/headers,/packages,/private,/temp}
 	}
 	chown -R pkg-cacher:pkg-cacher /var/cache/pkg-cacher
     	test -d /var/log/pkg-cacher || {
