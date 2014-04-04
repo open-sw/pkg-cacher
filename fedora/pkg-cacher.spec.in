@@ -132,7 +132,7 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
-* Wed, 02 Apr 2014 Joshua Kugler (joshua@azariah.com ) - 1.0.3
+* Wed Apr 02 2014 Joshua Kugler (joshua@azariah.com ) - 1.0.3
  - Update version to 1.0.3
 
  - Fixed missing error_message sub (#14)
