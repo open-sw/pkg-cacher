@@ -132,6 +132,13 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Wed Apr 02 2014 Joshua Kugler (joshua@azariah.com ) - 1.0.3
+ - Update version to 1.0.3
+
+ - Fixed missing error_message sub (#14)
+
+ - Added support for HTTPS (#15)
+
 * Sun Mar 23 2014 Robert Nelson ( robertn@the-nelsons.org ) - 1.0.2
   - Update version to 1.0.2
 

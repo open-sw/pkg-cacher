@@ -1,3 +1,12 @@
+pkg-cacher (1.0.3) stable; urgency=high
+  * Update version to 1.0.3
+
+  * Fixed missing error_message sub (#14)
+
+  * Added support for HTTPS (#15)
+
+ -- Joshua Kugler <joshua@azariah.com>  Wed, 02 Apr 2014 16:38:01 -0800
+
 pkg-cacher (1.0.2) stable; urgency=high
   * Update version to 1.0.2
 
