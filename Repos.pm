@@ -15,6 +15,13 @@ use Class::Accessor 'antlers';
 has path => ( is => 'ro', isa => 'Str' );
 has verbose => ( is => 'rw', isa => 'Boolean' );
 
+use File::Basename;
+
+require	IO::Uncompress::Bunzip2;
+require	IO::Uncompress::Gunzip;
+require	IO::Uncompress::UnLzma;
+require	IO::Uncompress::UnXz;
+
 use Fcntl qw/:DEFAULT :flock/;
 
 sub fullpath {
@@ -41,16 +48,63 @@ sub complete_file {
 	return 'private/'.$fullpath.'.complete';
 }
 
+sub open_compressed {
+	my ($self, $file) = @_;
+
+	my ( $extension ) = $file =~ qr/(\.bz2|\.gz|\.lzma|\.xz)$/;
+
+	my $fh;
+
+	if ($extension) {
+		if ($extension eq '.bz2') {
+			$fh = IO::Uncompress::Bunzip2->new($file);
+		} elsif ($extension eq '.gz') {
+			$fh = IO::Uncompress::Gunzip->new($file);
+		} elsif ($extension eq '.lzma') {
+			$fh = IO::Uncompress::UnLzma->new($file);
+		} elsif ($extension eq '.xz') {
+			$fh = IO::Uncompress::UnXz->new($file);
+		}
+	} else {
+		open($fh, '<', $file);
+	}
+
+	return $fh;
+}
+
+sub copy_compressed {
+	my ( $self, $infile, $outdir ) = @_;
+
+	my ( $file, undef, $extension ) = fileparse($infile, ('.bz2', '.gz', '.lzma', '.xz'));
+
+	if ($extension) {
+		my $outfile = $outdir.'/'.$file;
+
+		if ($extension eq '.bz2') {
+			IO::Uncompress::Bunzip2::bunzip2($infile, $outfile);
+		} elsif ($extension eq '.gz') {
+			IO::Uncompress::Gunzip::gunzip($infile, $outfile);
+		} elsif ($extension eq '.lzma') {
+			IO::Uncompress::UnLzma::unlzma($infile, $outfile);
+		} elsif ($extension eq '.xz') {
+			IO::Uncompress::UnXz::unxz($infile, $outfile);
+		}
+		return $outfile;
+	} else {
+		return undef;
+	}
+}
+
 sub validate {
-	my ($self, $file, $rootpath) = @_;
+	my ($self, $file_lists, $file, $rootpath) = @_;
 
 	my $status = -1;
 
 	my $fullpath = $rootpath ? $rootpath.'/'.$file : $self->fullpath($file);
 
-	if (-f $self->headers_file($fullpath)) {
-		if (-f $self->complete_file($fullpath)) {
-			if (-f $self->cached_file($fullpath)) {
+	if (defined $file_lists->{'headers'}{$fullpath}) {
+		if (defined $file_lists->{'private'}{$fullpath.'.complete'}) {
+			if (defined $file_lists->{'packages'}{$fullpath}) {
 				# Everything ok
 				$status = 0;
 			} else {

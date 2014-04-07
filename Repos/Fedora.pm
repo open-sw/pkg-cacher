@@ -41,8 +41,6 @@ require Repos;
 extends 'Repos';
 
 require DBI;
-require	IO::Uncompress::Bunzip2;
-require	IO::Uncompress::Gunzip;
 require XML::Simple;
 require XML::Twig;
 
@@ -65,7 +63,7 @@ sub process {
 
 	print 'Processing fedora repository = '.$self->path."\n" if $self->verbose;
 
-	my $status = $self->validate(REPOMD_FILE);
+	my $status = $self->validate($files, REPOMD_FILE);
 	
 	if ($status != 0) {
 		return 0;
@@ -91,7 +89,7 @@ sub process_repomd {
 		my $type = $item->{'type'};
 		my $location = $item->{'location'}{'href'};
 
-		my $status = $self->validate($location);
+		my $status = $self->validate($files, $location);
 		
 		$self->prune_file_lists($files, $location, $status);
 
@@ -120,7 +118,7 @@ sub process_prestodelta {
 		my ($t, $elt) = @_;
 		my $filename = $elt->text;
 
-		my $status = $self->validate($filename);
+		my $status = $self->validate($file_lists, $filename);
 		
 		$self->prune_file_lists($file_lists, $filename, $status);
 
@@ -148,7 +146,7 @@ sub process_primary {
 		my ($t, $elt) = @_;
 		my $location = $elt->att('href');
 
-		my $status = $self->validate($location);
+		my $status = $self->validate($file_lists, $location);
 		
 		$self->prune_file_lists($file_lists, $location, $status);
 
@@ -169,19 +167,12 @@ sub process_primary {
 }
 
 sub process_primary_db {
-	my ($self, $file, $file_lists) = @_;
+	my ( $self, $file, $file_lists ) = @_;
 
-	my $db_file = 'packages/'.$self->fullpath($file);
+	my $db_file = $self->cached_file($self->fullpath($file));
+	my $temp_file = $self->copy_compressed($db_file, 'temp');
 
-	if ($file =~ /^(.*)\.bz2$/) {
-		my $temp_file = 'temp/primary.sqlite';
-		IO::Uncompress::Bunzip2::bunzip2($db_file, $temp_file);
-		$db_file = $temp_file;
-	} elsif ($file =~ /^(.*)\.gz$/) {
-		my $temp_file = 'temp/primary.sqlite';
-		IO::Uncompress::Gunzip::gunzip($db_file, $temp_file);
-		$db_file = $temp_file;
-	}
+	$db_file = $temp_file if defined $temp_file;
 
 	my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file","","");
 
@@ -192,7 +183,7 @@ sub process_primary_db {
 	while (my @row = $sth->fetchrow_array()) {
 		my $location = $row[0];
 
-		my $status = $self->validate($location);
+		my $status = $self->validate($file_lists, $location);
 		
 		$self->prune_file_lists($file_lists, $location, $status);
 	};

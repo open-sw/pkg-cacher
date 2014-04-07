@@ -102,7 +102,7 @@ getent passwd pkg-cacher > /dev/null || \
 
 %post sa
 test -d /var/cache/pkg-cacher || {
-	mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
+	mkdir /var/cache/pkg-cacher{,/cache,/headers,/packages,/private,/temp}
 }
 chown -R pkg-cacher:pkg-cacher /var/cache/pkg-cacher
 test -d /var/log/pkg-cacher || {
@@ -117,7 +117,7 @@ service pkg-cacher restart
 %post cgi
 ln -sf /etc/pkg-cacher/apache.conf /etc/httpd/conf.d/pkg-cacher.conf
 test -d /var/cache/pkg-cacher || {
-	mkdir /var/cache/pkg-cacher{,/cache,/headers,/import,/packages,/private,/temp}
+	mkdir /var/cache/pkg-cacher{,/cache,/headers,/packages,/private,/temp}
 }
 chown -R apache:apache /var/cache/pkg-cacher
 test -d /var/log/pkg-cacher || {

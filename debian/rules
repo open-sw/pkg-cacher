@@ -27,7 +27,7 @@ install: build
 	perl -pe 's/^my \$$version=.*/my \$$version="'$(shell dpkg-parsechangelog  | grep ^Version | cut -f2 -d\  )'";/' -i $(CURDIR)/debian/pkg-cacher/usr/share/pkg-cacher/*
 	dh_link -ppkg-cacher-sa /usr/share/doc/pkg-cacher /usr/share/doc/pkg-cacher-sa
 	dh_link -ppkg-cacher-cgi /usr/share/doc/pkg-cacher /usr/share/doc/pkg-cacher-cgi
-	dh_installdocs -ppkg-cacher README TODO
+	dh_installdocs -ppkg-cacher README TODO client-samples
 	dh_installlogrotate -i
 	dh_installinit -i --name=pkg-cacher
 	dh_installcron -i

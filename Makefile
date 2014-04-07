@@ -5,9 +5,11 @@ TAROPTS=--directory .. --exclude=.git --exclude=.svn --exclude='*.swp' --exclude
 PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-request.pl pkg-cacher-fetch.pl \
 			pkg-cacher-lib.pl \
 			pkg-cacher-cleanup.pl \
-			pkg-cacher-report.pl
+			pkg-cacher-report.pl \
+			Repos.pm
 REPOS_FILES=Repos/Debian.pm Repos/Fedora.pm
 DATA_FILES=index_files.regexp static_files.regexp
+CLIENT_SAMPLE_FILES=client-samples/pkg-cacher-debian.list client-samples/pkg-cacher-fedora.list 
 
 SRPMDIR:=$(shell rpm --eval '%{_srcrpmdir}')
 RPMDIR:=$(shell rpm --eval '%{_rpmdir}')
@@ -69,7 +71,9 @@ install-init:
 
 install-docs:
 	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher
-	install -m 644 README TODO $(DESTDIR)/usr/share/doc/pkg-cacher
+	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
+	install -m 644 README TODO fedora/pkg-cacher.repo $(DESTDIR)/usr/share/doc/pkg-cacher
+	install -m 644 $(CLIENT_SAMPLES_FILES) $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
 
 install-logrotate:
 	install -m 755 -d $(DESTDIR)/etc/logrotate.d

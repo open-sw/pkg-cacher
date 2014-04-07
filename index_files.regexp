@@ -1,24 +1,23 @@
 # Debian files
 Index
-Packages\.gz
-Packages\.bz2
-Release
-Release\.gpg
-Sources\.gz
-Sources\.bz2
-Translation-.*.bz2
+Packages(\.bz2|\.gz|\.xz|\.lzma)?
+InRelease
+Release(\.gpg)?
+Sources(\.bz2|\.gz|\.xz|\.lzma)?
+Translation(-([[:alpha:]]{2}(_[[:alpha::]]{2})?))?(\.bz2|\.gz|\.xz|\.lzma)?
+TranslationIndex(\.bz2|\.gz|\.xz|\.lzma)?
 Contents-.+\.gz
 \d{4}-\d{2}-\d{2}-\d{4}\.\d+\.gz
 # Redhat files
-([0-9a-fA-F]+-)?comps.*\.xml(\.gz)?
-([0-9a-fA-F]+-)?filelists\.sqlite\.bz2
-([0-9a-fA-F]+-)?filelists\.xml\.gz
-([0-9a-fA-F]+-)?other\.sqlite\.bz2
-([0-9a-fA-F]+-)?other\.xml\.gz
-([0-9a-fA-F]+-)?pkgtags\.sqlite\.gz
-([0-9a-fA-F]+-)?prestodelta\.xml\.gz
-([0-9a-fA-F]+-)?primary\.sqlite\.bz2
-([0-9a-fA-F]+-)?primary\.xml\.gz
+([[:xdigit:]]+-)?comps.*\.xml(\.gz)?
+([[:xdigit:]]+-)?filelists\.sqlite\.bz2
+([[:xdigit:]]+-)?filelists\.xml\.gz
+([[:xdigit:]]+-)?other\.sqlite\.bz2
+([[:xdigit:]]+-)?other\.xml\.gz
+([[:xdigit:]]+-)?pkgtags\.sqlite\.gz
+([[:xdigit:]]+-)?prestodelta\.xml\.gz
+([[:xdigit:]]+-)?primary\.sqlite\.bz2
+([[:xdigit:]]+-)?primary\.xml\.gz
 repomd\.xml
 updateinfo\.xml\.gz
 # OpenSuSE files

@@ -108,7 +108,7 @@ sub debug_callback {
 		# General
 		$curl->setopt(CURLOPT_USERAGENT, "pkg-cacher/$version (".$curl->version.')');
 		$curl->setopt(CURLOPT_NOPROGRESS, 1);
-		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 60);
+		$curl->setopt(CURLOPT_CONNECTTIMEOUT, 10);
 		$curl->setopt(CURLOPT_NOSIGNAL, 1);
 		$curl->setopt(CURLOPT_LOW_SPEED_LIMIT, 0);
 		$curl->setopt(CURLOPT_LOW_SPEED_TIME, $cfg->{fetch_timeout});

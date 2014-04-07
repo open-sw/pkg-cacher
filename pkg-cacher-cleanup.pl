@@ -55,10 +55,6 @@ my %options = (
 my @savedARGV = @ARGV; # Save a copy in case required for rexec
 &help unless ( GetOptions(%options));
 
-if ($sim_mode) {
-  $verbose = 1;
-  print "Simulation mode. Just printing what would be done.\n";
-}
 &help if ($help);
 
 #############################################################################
@@ -90,6 +86,11 @@ if ($cfg->{user} && !$> or $cfg->{group} && !$)) {
     setup_ownership($cfg);
     # Rexec to ensure /proc/self/fd ownerships correct
     exec($0, @savedARGV) or die "Unable to rexec $0: $!\n";
+}
+
+if ($sim_mode) {
+  $verbose = 1;
+  print "Simulation mode. Just printing what would be done.\n";
 }
 
 # Output data as soon as we print it
