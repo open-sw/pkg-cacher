@@ -265,12 +265,12 @@ sub debug_message {
 	}
 }
 
-sub info_message {
+our sub info_message {
 	my $message = shift;
 	writeerrorlog("info [$$]: $message");
 }
 
-sub error_message {
+our sub error_message {
 	my $message = shift;
 	writeerrorlog("error [$$]: $message");
 }

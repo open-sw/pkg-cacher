@@ -1,0 +1,8 @@
+deb http://pkg-cacher.server/pkg-cacher/debian wheezy main contrib
+deb-src http://pkg-cacher.server/pkg-cacher/debian wheezy main contrib
+
+deb http://pkg-cacher.server/pkg-cacher/debian wheezy-updates main contrib
+deb-src http://pkg-cacher.server/pkg-cacher/debian wheezy-updates main contrib
+
+deb http://pkg-cacher.server/pkg-cacher/debian-security wheezy/updates main contrib
+deb-src http://pkg-cacher.server/pkg-cacher/debian-security wheezy/updates main contrib

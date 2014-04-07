@@ -1,0 +1,84 @@
+# CentOS-Base.repo
+#
+# This file uses a new mirrorlist system developed by Lance Davis for CentOS.
+# The mirror system uses the connecting IP address of the client and the
+# update status of each mirror to pick mirrors that are updated to and
+# geographically close to the client.  You should use this for CentOS updates
+# unless you are manually picking other mirrors.
+#
+# If the mirrorlist= does not work for you, as a fall back you can try the 
+# remarked out baseurl= line instead.
+#
+#
+
+[base-cached]
+name=CentOS $releasever - $basearch (cached)
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/os/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+exclude=MAKEDEV
+
+[base-cached-source]
+name=CentOS $releasever - Source (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/os/SRPMS/
+enabled=0
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+
+#released updates 
+[updates-cached]
+name=CentOS $releasever - $basearch - Updates (cached)
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/updates/$basearch/
+enabled=1
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+exclude=MAKEDEV
+
+[updates-cached-source]
+name=CentOS $releasever - Updates Source (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/updates/SRPMS/
+enabled=0
+gpgcheck=1
+gpgkey=http://mirror.centos.org/centos/RPM-GPG-KEY-CentOS-6
+
+#additional packages that may be useful
+[extras-cached]
+name=CentOS-$releasever - Extras (cached)
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/extras/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#additional packages that extend functionality of existing packages
+[centosplus-cached]
+name=CentOS-$releasever - Plus (cached)
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/centosplus/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+#contrib - packages by Centos Users
+[contrib-cached]
+name=CentOS-$releasever - Contrib (cached)
+baseurl=http://pkg-cacher.server/pkg-cacher/centos/$releasever/contrib/$basearch/
+gpgcheck=1
+enabled=0
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-CentOS-6
+
+[rpmforge-cached]
+name=Rpmforge (repoforge) - $basearch (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/rpmforge/dag/redhat/el6/en/$basearch/rpmforge/
+enabled=0
+metadata_expire=7d
+
+[epel-cached]
+name=EPEL - $basearch (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/epel/6/$basearch/
+enabled=0
+metadata_expire=7d
+

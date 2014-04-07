@@ -17,5 +17,4 @@ updateinfo-.+\.xml
 # These are queried by zypper but don't exist on the archive
 #	\.template
 # Common files
-\.tar\.bz2
-\.tar\.gz
+\.tar(\.bz2|\.gz)(\.gpg)?

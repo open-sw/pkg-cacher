@@ -471,8 +471,10 @@ sub handle_connection {
 		# download or not decision. Also releases the global lock
 		dl_check:
 		if (!$force_download && -e $cached_head && -e $cached_file && !$request_data{'cache_status'}) {
-			sysopen($fromfile, $cached_file, O_RDONLY) ||
+			if (!sysopen($fromfile, $cached_file, O_RDONLY)) {
+				&release_global_lock;
 				barf("Unable to open $cached_file: $!.");
+			}
 			if (-f $complete_file) {
 				# not much to do if complete
 				$request_data{'cache_status'} = 'HIT';
@@ -515,21 +517,27 @@ sub handle_connection {
 				debug_message($request_data{'cache_status'});
 			}
 
-			my $pid = fork();
-			if ($pid < 0) {
-				barf('fork() failed');
-			}
-			if ($pid == 0) {
-				# child, the fetcher thread
-				undef @childPids;
+			if (1) {
 				&fetch_store ($host, $uri);	# releases the global lock
 											# after locking the target
 											# file
-				exit(0);
+			} else {
+				my $pid = fork();
+				if ($pid < 0) {
+					barf('fork() failed');
+				}
+				if ($pid == 0) {
+					# child, the fetcher thread
+					undef @childPids;
+					&fetch_store ($host, $uri);	# releases the global lock
+												# after locking the target
+												# file
+					exit(0);
+				}
+				# parent continues
+				push @childPids, $pid;
+				debug_message("registered child process: $pid");
 			}
-			# parent continues
-			push @childPids, $pid;
-			debug_message("registered child process: $pid");
 		}
 
 		debug_message('checks done, can return now');

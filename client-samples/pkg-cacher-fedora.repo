@@ -1,0 +1,50 @@
+[fedora-cached]
+name=Fedora $releasever - $basearch (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/fedora/releases/$releasever/Everything/$basearch/os/
+enabled=0
+metadata_expire=7d
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch
+
+[fedora-cached-debuginfo]
+name=Fedora $releasever - $basearch - Debug (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/fedora/releases/$releasever/Everything/$basearch/debug/
+enabled=0
+metadata_expire=7d
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch
+
+[fedora-cached-source]
+name=Fedora $releasever - Source (cached)
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/fedora/releases/$releasever/Everything/source/SRPMS/
+enabled=0
+metadata_expire=7d
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch
+
+[updates-cached]
+name=Fedora $releasever - $basearch - Updates
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/fedora/updates/$releasever/$basearch/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch
+
+[updates-cached-debuginfo]
+name=Fedora $releasever - $basearch - Updates - Debug
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/fedora/updates/$releasever/$basearch/debug/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch
+
+[updates-cached-source]
+name=Fedora $releasever - Updates Source
+failovermethod=priority
+baseurl=http://pkg-cacher.server/pkg-cacher/fedora/updates/$releasever/SRPMS/
+enabled=0
+gpgcheck=1
+gpgkey=file:///etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-$releasever-$basearch

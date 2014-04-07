@@ -5,8 +5,12 @@ TAROPTS=--directory .. --exclude=.git --exclude=.svn --exclude='*.swp' --exclude
 PROGRAM_FILES=pkg-cacher pkg-cacher.pl pkg-cacher-request.pl pkg-cacher-fetch.pl \
 			pkg-cacher-lib.pl \
 			pkg-cacher-cleanup.pl \
-			pkg-cacher-report.pl
+			pkg-cacher-report.pl \
+			Repos.pm
+REPOS_FILES=Repos/Debian.pm Repos/Fedora.pm
 DATA_FILES=index_files.regexp static_files.regexp
+CLIENT_SAMPLE_FILES=client-samples/pkg-cacher-debian.list client-samples/pkg-cacher-ubuntu.list \
+	client-samples/pkg-cacher-centos.repo client-samples/pkg-cacher-fedora.repo \
 
 SRPMDIR:=$(shell rpm --eval '%{_srcrpmdir}')
 RPMDIR:=$(shell rpm --eval '%{_rpmdir}')
@@ -47,6 +51,7 @@ clean:
 install-dirs:
 	install -m 755 -d $(DESTDIR)/usr/sbin
 	install -m 755 -d $(DESTDIR)/usr/share/pkg-cacher
+	install -m 755 -d $(DESTDIR)/usr/share/pkg-cacher/Repos
 	install -m 755 -d $(DESTDIR)/var/cache/pkg-cacher
 	install -m 755 -d $(DESTDIR)/var/log/pkg-cacher
 
@@ -57,7 +62,7 @@ install-config:
 
 install-cron:
 	install -m 755 -d $(DESTDIR)/etc/cron.daily
-	install -m 644 pkg-cacher.cron.daily $(DESTDIR)/etc/cron.daily/pkg-cacher
+	install -m 755 pkg-cacher.cron.daily $(DESTDIR)/etc/cron.daily/pkg-cacher
 
 install-init:
 	install -m 755 -d $(DESTDIR)/etc/init.d
@@ -67,7 +72,9 @@ install-init:
 
 install-docs:
 	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher
+	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
 	install -m 644 README TODO $(DESTDIR)/usr/share/doc/pkg-cacher
+	install -m 644 $(CLIENT_SAMPLE_FILES) $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
 
 install-logrotate:
 	install -m 755 -d $(DESTDIR)/etc/logrotate.d
@@ -82,6 +89,7 @@ install-link:
 
 install-files:
 	install -m 755 $(PROGRAM_FILES) $(DESTDIR)/usr/share/pkg-cacher
+	install -m 755 $(REPOS_FILES) $(DESTDIR)/usr/share/pkg-cacher/Repos
 	install -m 644 $(DATA_FILES) $(DESTDIR)/usr/share/pkg-cacher
 
 install-clean:
