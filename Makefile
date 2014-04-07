@@ -73,8 +73,8 @@ install-init:
 install-docs:
 	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher
 	install -m 755 -d $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
-	install -m 644 README TODO fedora/pkg-cacher.repo $(DESTDIR)/usr/share/doc/pkg-cacher
-	install -m 644 $(CLIENT_SAMPLES_FILES) $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
+	install -m 644 README TODO $(DESTDIR)/usr/share/doc/pkg-cacher
+	install -m 644 $(CLIENT_SAMPLE_FILES) $(DESTDIR)/usr/share/doc/pkg-cacher/client-samples
 
 install-logrotate:
 	install -m 755 -d $(DESTDIR)/etc/logrotate.d
