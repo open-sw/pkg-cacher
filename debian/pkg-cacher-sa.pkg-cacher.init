@@ -3,12 +3,12 @@
 
 ### BEGIN INIT INFO
 # Provides:          pkg-cacher
-# Required-Start:    
-# Should-Start:      mountall
-# Required-Stop:     
+# Required-Start:    $remote_fs $local_fs
+# Should-Start:      
+# Required-Stop:     $remote_fs $local_fs
 # Should-Stop:       
 # Default-Start:     2 3 4 5
-# Default-Stop:      0 6
+# Default-Stop:      0 1 6
 # Short-Description: pkg-cacher package caching proxy daemon 
 # Description:       The pkg-cacher service is used to cache packages for a system or LAN
 ### END INIT INFO

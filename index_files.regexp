@@ -1,11 +1,11 @@
 # Debian files
 Index
-Packages(\.bz2|\.gz|\.xz|\.lzma)?
+Packages(\.bz2|\.gz)?
 InRelease
 Release(\.gpg)?
-Sources(\.bz2|\.gz|\.xz|\.lzma)?
-Translation(-([[:alpha:]]{2}(_[[:alpha::]]{2})?))?(\.bz2|\.gz|\.xz|\.lzma)?
-TranslationIndex(\.bz2|\.gz|\.xz|\.lzma)?
+Sources(\.bz2|\.gz)?
+Translation(-([[:alpha:]]{2}(_[[:alpha::]]{2})?))?(\.bz2|\.gz)?
+TranslationIndex(\.bz2|\.gz)?
 Contents-.+\.gz
 \d{4}-\d{2}-\d{2}-\d{4}\.\d+\.gz
 # Redhat files

@@ -13,7 +13,7 @@
 =cut
 # ----------------------------------------------------------------------------
 
-use Fcntl qw(:DEFAULT :flock SEEK_SET SEEK_CUR SEEK_END);
+use Fcntl qw(:DEFAULT :flock);
 
 use WWW::Curl::Easy;
 use IO::Socket::INET;

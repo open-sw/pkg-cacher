@@ -17,7 +17,7 @@ use strict;
 use warnings;
 use lib '/usr/share/pkg-cacher/';
 
-use Fcntl qw(:DEFAULT :flock SEEK_SET SEEK_CUR SEEK_END);
+use Fcntl qw(:DEFAULT :flock);
 
 use IO::Socket::INET;
 use HTTP::Response;

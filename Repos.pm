@@ -19,8 +19,6 @@ use File::Basename;
 
 require	IO::Uncompress::Bunzip2;
 require	IO::Uncompress::Gunzip;
-require	IO::Uncompress::UnLzma;
-require	IO::Uncompress::UnXz;
 
 use Fcntl qw/:DEFAULT :flock/;
 
@@ -51,7 +49,7 @@ sub complete_file {
 sub open_compressed {
 	my ($self, $file) = @_;
 
-	my ( $extension ) = $file =~ qr/(\.bz2|\.gz|\.lzma|\.xz)$/;
+	my ( $extension ) = $file =~ qr/(\.bz2|\.gz)$/;
 
 	my $fh;
 
@@ -60,10 +58,6 @@ sub open_compressed {
 			$fh = IO::Uncompress::Bunzip2->new($file);
 		} elsif ($extension eq '.gz') {
 			$fh = IO::Uncompress::Gunzip->new($file);
-		} elsif ($extension eq '.lzma') {
-			$fh = IO::Uncompress::UnLzma->new($file);
-		} elsif ($extension eq '.xz') {
-			$fh = IO::Uncompress::UnXz->new($file);
 		}
 	} else {
 		open($fh, '<', $file);
@@ -75,7 +69,7 @@ sub open_compressed {
 sub copy_compressed {
 	my ( $self, $infile, $outdir ) = @_;
 
-	my ( $file, undef, $extension ) = fileparse($infile, ('.bz2', '.gz', '.lzma', '.xz'));
+	my ( $file, undef, $extension ) = fileparse($infile, ('.bz2', '.gz'));
 
 	if ($extension) {
 		my $outfile = $outdir.'/'.$file;
@@ -84,10 +78,6 @@ sub copy_compressed {
 			IO::Uncompress::Bunzip2::bunzip2($infile, $outfile);
 		} elsif ($extension eq '.gz') {
 			IO::Uncompress::Gunzip::gunzip($infile, $outfile);
-		} elsif ($extension eq '.lzma') {
-			IO::Uncompress::UnLzma::unlzma($infile, $outfile);
-		} elsif ($extension eq '.xz') {
-			IO::Uncompress::UnXz::unxz($infile, $outfile);
 		}
 		return $outfile;
 	} else {

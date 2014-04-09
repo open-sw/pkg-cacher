@@ -1,4 +1,5 @@
 usr/sbin
 usr/share/pkg-cacher
+usr/share/pkg-cacher/Repos
 etc/pkg-cacher
 etc/cron.daily
