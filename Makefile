@@ -37,8 +37,8 @@ rpms: tar
 	SRPMDIR=`rpm --eval '%{_srcrpmdir}'`; \
 	RPMDIR=`rpm --eval '%{_rpmdir}'`; \
 	rpmbuild --define "dist %{nil}" -ta $(DESTDIR)/$(NAME)/$(NAME)-$(VERSION).tar.bz2; \
-	mv $SRPMDIR/$(NAME)-*$(VERSION)*.src.rpm $(DESTDIR)/$(NAME); \
-	mv $RPMDIR/noarch/$(NAME)-*$(VERSION)*.noarch.rpm $(DESTDIR)/$(NAME); \
+	mv $$SRPMDIR/$(NAME)-*$(VERSION)*.src.rpm $(DESTDIR)/$(NAME); \
+	mv $$RPMDIR/noarch/$(NAME)-*$(VERSION)*.noarch.rpm $(DESTDIR)/$(NAME); \
 	)
 
 debs: $(DESTDIR)/debian
