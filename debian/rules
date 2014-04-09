@@ -22,6 +22,7 @@ install: build
 	dh_clean -i
 	dh_installdirs -i
 	make DESTDIR=debian/pkg-cacher install-config
+	make DESTDIR=debian/pkg-cacher install-dirs
 	make DESTDIR=debian/pkg-cacher install-files
 	make DESTDIR=debian/pkg-cacher install-link
 	perl -pe 's/^my \$$version=.*/my \$$version="'$(shell dpkg-parsechangelog  | grep ^Version | cut -f2 -d\  )'";/' -i $(CURDIR)/debian/pkg-cacher/usr/share/pkg-cacher/*
