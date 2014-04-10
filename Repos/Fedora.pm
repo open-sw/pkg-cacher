@@ -35,10 +35,7 @@ package Repos::Fedora;
 use strict;
 use warnings;
 
-use Class::Accessor qw(antlers);
-
-require Repos;
-extends 'Repos';
+use parent qw(Class::Accessor Repos);
 
 require DBI;
 require XML::Simple;

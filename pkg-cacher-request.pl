@@ -13,7 +13,7 @@
 =cut
 # ----------------------------------------------------------------------------
 
-use Fcntl qw(:DEFAULT :flock SEEK_SET SEEK_CUR SEEK_END);
+use Fcntl qw(:DEFAULT :flock :seek);
 
 use IO::Socket::INET;
 use HTTP::Date;
@@ -28,7 +28,6 @@ my $source;
 
 my $mode; # cgi|inetd|sa
 my $concloseflag;
-my @childPids;
 
 require 'pkg-cacher-fetch.pl';
 
@@ -517,27 +516,9 @@ sub handle_connection {
 				debug_message($request_data{'cache_status'});
 			}
 
-			if (1) {
-				&fetch_store ($host, $uri);	# releases the global lock
-											# after locking the target
-											# file
-			} else {
-				my $pid = fork();
-				if ($pid < 0) {
-					barf('fork() failed');
-				}
-				if ($pid == 0) {
-					# child, the fetcher thread
-					undef @childPids;
-					&fetch_store ($host, $uri);	# releases the global lock
-												# after locking the target
-												# file
-					exit(0);
-				}
-				# parent continues
-				push @childPids, $pid;
-				debug_message("registered child process: $pid");
-			}
+			&fetch_store ($host, $uri);	# releases the global lock
+										# after locking the target
+										# file
 		}
 
 		debug_message('checks done, can return now');

@@ -24,28 +24,30 @@ set -e
 #     `abort-remove' or `abort-deconfigure'.
 
 case "$1" in
-    configure)
+	configure)
+		test -d /var/cache/pkg-cacher || {
+			for dir in cache headers packages private temp; do
+				mkdir /var/cache/pkg-cacher/$dir
+			done
+		}
+		chown -R www-data:www-data /var/cache/pkg-cacher
+		test -d /var/log/pkg-cacher || {
+			mkdir /var/log/pkg-cacher
+			touch /var/log/pkg-cacher/access.log
+			touch /var/log/pkg-cacher/error.log
+		}
+		chown -R www-data:www-data /var/log/pkg-cacher
+		sed -i -e '/^\(user\|group\)=/s/=.*$/=www-data/' /etc/pkg-cacher/pkg-cacher.conf
+		invoke-rc.d apache2 reload
+		;;
 
-    	test -d /var/cache/pkg-cacher || {
-		mkdir /var/cache/pkg-cacher{,/cache,/headers,/packages,/private,/temp}
-	}
-	chown -R www-data:www-data /var/cache/pkg-cacher
-    	test -d /var/log/pkg-cacher || {
-		mkdir /var/log/pkg-cacher
-		touch /var/log/pkg-cacher/{access.log,error.log}
-	}
-	chown -R www-data:www-data /var/log/pkg-cacher
-	sed -i -e '/^\(user\|group\)=/s/=.*$/=www-data/' /etc/pkg-cacher/pkg-cacher.conf
-	/etc/init.d/apache2 reload
-    ;;
+	abort-upgrade|abort-remove|abort-deconfigure)
+		;;
 
-    abort-upgrade|abort-remove|abort-deconfigure)
-    ;;
-
-    *)
-        echo "postinst called with unknown argument \`$1'" >&2
-        exit 1
-    ;;
+	*)
+		echo "postinst called with unknown argument \`$1'" >&2
+		exit 1
+		;;
 esac
 
 # dh_installdeb will replace this with shell code automatically

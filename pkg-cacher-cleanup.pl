@@ -204,7 +204,7 @@ sub dump_files {
 	foreach my $list (keys %files_lists) {
 		print "list = $list\n";
 
-		foreach my $file (keys $files_lists{$list}) {
+		foreach my $file (keys %{$files_lists{$list}}) {
 			print "file = $file\n";
 		}
 	}

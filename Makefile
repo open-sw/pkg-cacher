@@ -12,9 +12,6 @@ DATA_FILES=index_files.regexp static_files.regexp
 CLIENT_SAMPLE_FILES=client-samples/pkg-cacher-debian.list client-samples/pkg-cacher-ubuntu.list \
 	client-samples/pkg-cacher-centos.repo client-samples/pkg-cacher-fedora.repo \
 
-SRPMDIR:=$(shell rpm --eval '%{_srcrpmdir}')
-RPMDIR:=$(shell rpm --eval '%{_rpmdir}')
-
 DESTDIR:=$(shell pwd)/../dist
 
 $(DESTDIR):
@@ -36,12 +33,16 @@ tar: $(DESTDIR)/$(NAME)
 	)
 
 rpms: tar
-	rpmbuild --define "dist %{nil}" -ta $(DESTDIR)/$(NAME)/$(NAME)-$(VERSION).tar.bz2
-	mv $(SRPMDIR)/$(NAME)-*$(VERSION)*.src.rpm $(DESTDIR)/$(NAME)
-	mv $(RPMDIR)/noarch/$(NAME)-*$(VERSION)*.noarch.rpm $(DESTDIR)/$(NAME)
+	( \
+	SRPMDIR=`rpm --eval '%{_srcrpmdir}'`; \
+	RPMDIR=`rpm --eval '%{_rpmdir}'`; \
+	rpmbuild --define "dist %{nil}" -ta $(DESTDIR)/$(NAME)/$(NAME)-$(VERSION).tar.bz2; \
+	mv $$SRPMDIR/$(NAME)-*$(VERSION)*.src.rpm $(DESTDIR)/$(NAME); \
+	mv $$RPMDIR/noarch/$(NAME)-*$(VERSION)*.noarch.rpm $(DESTDIR)/$(NAME); \
+	)
 
 debs: $(DESTDIR)/debian
-	fakeroot dpkg-buildpackage -I.svn -I.git -us -uc
+	dpkg-buildpackage -I.svn -I.git -us -uc
 	mv ../$(NAME)*_$(VERSION)* $(DESTDIR)/debian
 
 clean:
