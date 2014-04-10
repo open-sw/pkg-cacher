@@ -10,10 +10,12 @@ package Repos;
 use strict;
 use warnings;
 
-use Class::Accessor 'antlers';
+use parent qw(Class::Accessor);
 
-has path => ( is => 'ro', isa => 'Str' );
-has verbose => ( is => 'rw', isa => 'Boolean' );
+#	has path => ( is => 'ro', isa => 'Str' )";
+#	has verbose => ( is => 'rw', isa => 'Boolean' )";
+
+Repos->mk_accessors(qw(path verbose));
 
 use File::Basename;
 

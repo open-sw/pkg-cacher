@@ -8,6 +8,7 @@ Source: %{name}-%{version}.tar.bz2
 Packager: Robert Nelson (robertn at the-nelsons dot org)
 Buildroot: %{_tmppath}/%{name}-%{version}-root
 BuildArch: noarch
+Requires: perl(DBD::SQLite)
 Provides: perl(pkg-cacher-lib.pl)
 Provides: perl(pkg-cacher-request.pl)
 Provides: perl(pkg-cacher-fetch.pl)
@@ -63,7 +64,7 @@ Install pkg-cacher-sa instead if a standalone server is desired.
 make DESTDIR=$RPM_BUILD_ROOT install-clean
 make DESTDIR=$RPM_BUILD_ROOT install-dirs
 make DESTDIR=$RPM_BUILD_ROOT install-files
-perl -pe 's/^my \$version=.*/my \$version="'%{version}-%{release}'";/' -i $RPM_BUILD_ROOT/usr/share/pkg-cacher/*
+perl -pe 's/^our \$version=.*/our \$version="'%{version}-%{release}'";/' -i $RPM_BUILD_ROOT/usr/share/pkg-cacher/pkg-cacher
 make DESTDIR=$RPM_BUILD_ROOT install-config
 make DESTDIR=$RPM_BUILD_ROOT install-docs
 make DESTDIR=$RPM_BUILD_ROOT install-logrotate

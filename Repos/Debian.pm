@@ -18,10 +18,7 @@ package Repos::Debian;
 use strict;
 use warnings;
 
-use Class::Accessor 'antlers';
-
-require Repos;
-extends 'Repos';
+use parent qw(Class::Accessor Repos);
 
 use File::Basename 'dirname';
 
