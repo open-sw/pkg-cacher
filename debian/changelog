@@ -1,3 +1,31 @@
+pkg-cacher (1.1.0) stable; urgency=high
+  * Update version to 1.1.0
+
+  * Implement repository cleanup.
+
+  * Add sample client config files for CentOS, Debian, Fedora and Ubuntu to
+    /usr/share/doc/pkg-cacher/client-samples.
+
+  * Eliminate rpm dependency when building Debian debs.
+
+  * Fix permissions on /etc/cron.daily/pkg-cacher.
+
+  * Fix Lintian issues on Debian package.
+
+  * Eliminate creaton of obsolete import directory.
+
+  * Use /bin/bash for Debian scripts that require them.
+
+  * Fixes bug setting version in packaged scripts.
+
+  * Updated and simplified *.regexp files.
+
+  * Add support for https based proxies and repositories.
+
+  * Retry bogus 400 HTTP responses.
+
+  * Make default port for standalone consistently 8080.
+  
 pkg-cacher (1.0.2) stable; urgency=high
   * Update version to 1.0.2
 
