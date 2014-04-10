@@ -1,0 +1,21 @@
+#!/bin/bash
+# postinst script for pkg-cacher
+#
+# see: dh_installdeb(1)
+
+set -e
+
+case "$1" in
+    install)
+	getent group pkg-cacher > /dev/null || groupadd -r pkg-cacher
+	getent passwd pkg-cacher > /dev/null || \
+		useradd -r -d /var/cache/pkg-cacher -g pkg-cacher -s /sbin/nologin \
+		-c "pkg-cacher user" pkg-cacher > /dev/null 2>&1
+	;;
+
+    upgrade)
+	;;
+
+    abort-upgrade)
+	;;
+esac

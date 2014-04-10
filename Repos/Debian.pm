@@ -37,11 +37,14 @@ sub rootpath {
 
 	my @dirs = split('/', $file);
 
-	if ($#dirs >= 2 && $dirs[-2] eq 'dists') {
-		return ($#dirs >= 3) ? join('/', @dirs[0, -3]) : $dirs[0];
-	} else {
-		return undef;
+	if ($#dirs > 1) {
+		for (my $index = $#dirs - 1; $index >= 0; $index--) {
+			if ($dirs[$index] eq 'dists') {
+				return ($index > 1) ? join('/', @dirs[0, $index - 1]) : $dirs[0];
+			}
+		}
 	}
+	return undef;
 }
 
 sub checkrepo {
@@ -49,10 +52,10 @@ sub checkrepo {
 	my $repo;
 
 	if (defined $dirname) {
-		my $rootpath = rootpath($dirname.'/'.$file);
+		if (-f $file.'/InRelease' || (-f $file.'/Release' && -f $file.'/Release.gpg')) {
+			my $rootpath = rootpath($dirname.'/'.$file);
 
-		if (defined $rootpath) {
-			if (-f $file.'/InRelease' || (-f $file.'/Release' && -f $file.'/Release.gpg')) {
+			if (defined $rootpath) {
 				$repo = $class->new({path => $dirname.'/'.$file, verbose => $verbose});
 			}
 		}
