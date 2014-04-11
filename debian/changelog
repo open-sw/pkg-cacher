@@ -26,6 +26,8 @@ pkg-cacher (1.1.0) stable; urgency=high
 
   * Make default port for standalone consistently 8080.
   
+ -- Robert Nelson <robertn@the-nelsons.org>  Thu, 10 Apr 2014 19:09:35 -0700
+
 pkg-cacher (1.0.2) stable; urgency=high
   * Update version to 1.0.2
 
