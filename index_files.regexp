@@ -20,6 +20,8 @@ Contents-.+\.gz
 ([[:xdigit:]]+-)?primary\.xml\.gz
 repomd\.xml
 updateinfo\.xml\.gz
+treeinfo
+\.treeinfo
 # OpenSuSE files
 EXTRA_PROV
 MD5SUMS
