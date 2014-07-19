@@ -10,13 +10,17 @@ Contents-.+\.gz
 \d{4}-\d{2}-\d{2}-\d{4}\.\d+\.gz
 # Redhat files
 ([[:xdigit:]]+-)?comps.*\.xml(\.gz)?
+([[:xdigit:]]+-)?comps.*\.xml(\.xz)?
 ([[:xdigit:]]+-)?filelists\.sqlite\.bz2
+([[:xdigit:]]+-)?filelists\.sqlite\.xz
 ([[:xdigit:]]+-)?filelists\.xml\.gz
 ([[:xdigit:]]+-)?other\.sqlite\.bz2
+([[:xdigit:]]+-)?other\.sqlite\.xz
 ([[:xdigit:]]+-)?other\.xml\.gz
 ([[:xdigit:]]+-)?pkgtags\.sqlite\.gz
 ([[:xdigit:]]+-)?prestodelta\.xml\.gz
 ([[:xdigit:]]+-)?primary\.sqlite\.bz2
+([[:xdigit:]]+-)?primary\.sqlite\.xz
 ([[:xdigit:]]+-)?primary\.xml\.gz
 repomd\.xml
 updateinfo\.xml\.gz
