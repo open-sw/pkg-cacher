@@ -132,7 +132,7 @@ sub process_prestodelta {
 		my $gz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
 		$prestodelta = $twig->parse($gz);
 		$gz->close();
-	elsif ($file =~ /\.xz$/) {
+	} elsif ($file =~ /\.xz$/) {
 		my $xz = IO::Uncompress::UnXz->new($self->cached_file($self->fullpath($file)));
 		$prestodelta = $twig->parse($xz);
 		$xz->close();
@@ -163,7 +163,7 @@ sub process_primary {
 		my $gz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
 		$twig->parse($gz);
 		$gz->close();
-	elsif ($file =~ /\.xz$/) {
+	} elsif ($file =~ /\.xz$/) {
 		my $xz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
 		$twig->parse($xz);
 		$xz->close();
