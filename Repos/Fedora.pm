@@ -18,7 +18,7 @@
 # 		Each file referenced in repomd.xml is tested
 # 			If the file passes validation:
 # 				if tag data attribute type is primary_db or primary, remember it
-# 				If the file is [hash]-primary.sqlite.bz2 or primary.sqlite.bz2 or primary.xml.gz or primary.xml remember it
+# 				If the file is [hash]-primary.sqlite.xz or [hash]-primary.sqlite.bz2 or primary.sqlite.bz2 or primary.xml.gz or primary.xml remember it
 # 				Remove it from the hashes
 # 			If it is being processed:
 # 				Remove it from the hashes
@@ -40,6 +40,7 @@ use parent qw(Class::Accessor Repos);
 require DBI;
 require XML::Simple;
 require XML::Twig;
+require	IO::Uncompress::UnXz;
 
 use constant {
 	REPOMD_FILE => 'repodata/repomd.xml',
@@ -125,12 +126,16 @@ sub process_prestodelta {
 	};
 
 	my $twig = XML::Twig->new(twig_handlers => { 'filename' => $filename_cb });
-	my $gz;
 	my $prestodelta;
 
 	if ($file =~ /\.gz$/) {
-		$gz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
+		my $gz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
 		$prestodelta = $twig->parse($gz);
+		$gz->close();
+	elsif ($file =~ /\.xz$/) {
+		my $xz = IO::Uncompress::UnXz->new($self->cached_file($self->fullpath($file)));
+		$prestodelta = $twig->parse($xz);
+		$xz->close();
 	} else {
 		$prestodelta = $twig->parse($self->cached_file($self->fullpath($file)));
 	}
@@ -158,6 +163,10 @@ sub process_primary {
 		my $gz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
 		$twig->parse($gz);
 		$gz->close();
+	elsif ($file =~ /\.xz$/) {
+		my $xz = IO::Uncompress::Gunzip->new($self->cached_file($self->fullpath($file)));
+		$twig->parse($xz);
+		$xz->close();
 	} else {
 		$twig->parse($self->cached_file($self->fullpath($file)));
 	}
@@ -170,6 +179,8 @@ sub process_primary_db {
 	my $temp_file = $self->copy_compressed($db_file, 'temp');
 
 	$db_file = $temp_file if defined $temp_file;
+
+	# print "Processing sqlite database = $db_file\n" if $self->verbose;
 
 	my $dbh = DBI->connect("dbi:SQLite:dbname=$db_file","","");
 

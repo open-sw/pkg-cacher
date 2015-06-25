@@ -133,6 +133,11 @@ service httpd restart
 rm -rf $RPM_BUILD_ROOT
 
 %changelog
+* Thu Jun 25 2015 Robert Nelson ( robertn@the-nelsons.org ) - 1.1.1
+  - Update version to 1.1.1
+
+  - Add .xz support
+
 * Thu Apr 10 2014 Robert Nelson ( robertn@the-nelsons.org ) - 1.1.0
   - Update version to 1.1.0
 
