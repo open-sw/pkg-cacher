@@ -8,7 +8,7 @@ Standards-Version: 3.9.4
 
 Package: pkg-cacher
 Architecture: all
-Depends: ${perl:Depends}, ${misc:Depends}, bzip2, libwww-curl-perl, libwww-perl, libdigest-sha-perl, libclass-accessor-perl, libdbi-perl, libdbd-sqlite3-perl, libxml-simple-perl, libxml-twig-perl
+Depends: ${perl:Depends}, ${misc:Depends}, bzip2, libwww-curl-perl, libwww-perl, libdigest-sha-perl, libclass-accessor-perl, libdbi-perl, libdbd-sqlite3-perl, libxml-simple-perl, libxml-twig-perl libio-compress-lzma-perl
 Suggests: libio-socket-inet6-perl
 Description: Caching proxy for Debian, Ubuntu, RedHat, Fedora, and CentOS repositories.
  Pkg-cacher performs caching of packages and metadata which have been downloaded 
