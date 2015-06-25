@@ -1,25 +1,35 @@
 # Debian files
 Index
-Packages(\.bz2|\.gz)?
+Packages(\.bz2|\.gz|\.xz)?
 InRelease
 Release(\.gpg)?
-Sources(\.bz2|\.gz)?
-Translation(-([[:alpha:]]{2}(_[[:alpha::]]{2})?))?(\.bz2|\.gz)?
-TranslationIndex(\.bz2|\.gz)?
+Sources(\.bz2|\.gz|\.xz)?
+Translation(-([[:alpha:]]{2}(_[[:alpha::]]{2})?))?(\.bz2|\.gz|\.xz)?
+TranslationIndex(\.bz2|\.gz|\.xz)?
 Contents-.+\.gz
 \d{4}-\d{2}-\d{2}-\d{4}\.\d+\.gz
 # Redhat files
 ([[:xdigit:]]+-)?comps.*\.xml(\.gz)?
+([[:xdigit:]]+-)?comps.*\.xml(\.xz)?
 ([[:xdigit:]]+-)?filelists\.sqlite\.bz2
+([[:xdigit:]]+-)?filelists\.sqlite\.xz
 ([[:xdigit:]]+-)?filelists\.xml\.gz
+([[:xdigit:]]+-)?filelists\.xml\.xz
 ([[:xdigit:]]+-)?other\.sqlite\.bz2
+([[:xdigit:]]+-)?other\.sqlite\.xz
 ([[:xdigit:]]+-)?other\.xml\.gz
+([[:xdigit:]]+-)?other\.xml\.xz
 ([[:xdigit:]]+-)?pkgtags\.sqlite\.gz
+([[:xdigit:]]+-)?pkgtags\.sqlite\.xz
 ([[:xdigit:]]+-)?prestodelta\.xml\.gz
+([[:xdigit:]]+-)?prestodelta\.xml\.xz
 ([[:xdigit:]]+-)?primary\.sqlite\.bz2
+([[:xdigit:]]+-)?primary\.sqlite\.xz
 ([[:xdigit:]]+-)?primary\.xml\.gz
+([[:xdigit:]]+-)?primary\.xml\.xz
 repomd\.xml
 updateinfo\.xml\.gz
+updateinfo\.xml\.xz
 # OpenSuSE files
 EXTRA_PROV
 MD5SUMS
@@ -31,6 +41,8 @@ packages.*\.gz
 patches.xml
 patterns
 products
+treeinfo
+.treeinfo
 .+\.pat\.gz
 .+\.asc
 .+\.key

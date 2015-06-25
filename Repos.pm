@@ -21,6 +21,7 @@ use File::Basename;
 
 require	IO::Uncompress::Bunzip2;
 require	IO::Uncompress::Gunzip;
+require	IO::Uncompress::UnXz;
 
 use Fcntl qw/:DEFAULT :flock/;
 
@@ -51,7 +52,7 @@ sub complete_file {
 sub open_compressed {
 	my ($self, $file) = @_;
 
-	my ( $extension ) = $file =~ qr/(\.bz2|\.gz)$/;
+	my ( $extension ) = $file =~ qr/(\.bz2|\.gz|\.xz)$/;
 
 	my $fh;
 
@@ -60,6 +61,8 @@ sub open_compressed {
 			$fh = IO::Uncompress::Bunzip2->new($file);
 		} elsif ($extension eq '.gz') {
 			$fh = IO::Uncompress::Gunzip->new($file);
+		} elsif ($extension eq '.xz') {
+			$fh = IO::Uncompress::UnXz->new($file);
 		}
 	} else {
 		open($fh, '<', $file);
@@ -71,15 +74,20 @@ sub open_compressed {
 sub copy_compressed {
 	my ( $self, $infile, $outdir ) = @_;
 
-	my ( $file, undef, $extension ) = fileparse($infile, ('.bz2', '.gz'));
+	my ( $file, undef, $extension ) = fileparse($infile, ('.bz2', '.gz', '.xz'));
 
 	if ($extension) {
 		my $outfile = $outdir.'/'.$file;
 
 		if ($extension eq '.bz2') {
+			# print 'Bunzipping '.$infile.' to '.$outfile."\n" if $self->verbose;
 			IO::Uncompress::Bunzip2::bunzip2($infile, $outfile);
 		} elsif ($extension eq '.gz') {
+			# print 'Bunzipping '.$infile.' to '.$outfile."\n" if $self->verbose;
 			IO::Uncompress::Gunzip::gunzip($infile, $outfile);
+		} elsif ($extension eq '.xz') {
+			# print 'Unlzmaing '.$infile.' to '.$outfile."\n" if $self->verbose;
+			IO::Uncompress::UnXz::unxz($infile, $outfile);
 		}
 		return $outfile;
 	} else {
