@@ -95,7 +95,7 @@ sub sa_get_request {
 				}
 			} elsif (/^Host:\s+(\S+)/) {
 				$$request_data_ref{'hostreq'} = $1;
-			} elsif (/^((?:Pragma|Cache-Control):\s+\S+)/) {
+			} elsif (/^((?:Pragma|Cache-Control):\s*\S+)/) {
 				debug_message("Request specified $1");
 				push @cache_control, $1;
 				if ($1=~/no-cache/) {
